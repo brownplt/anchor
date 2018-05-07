@@ -333,7 +333,7 @@ if (parsed !== undefined) {
   out.write("  for (var i = 0; i < cycles.length; i++)\n");
   out.write("    console.log(cycles[i]);\n");
   out.write("}\n");
-  out.write("var g_json = JSON.stringify(g.toSerializable(), null, '  ');\n");
+  out.write("var g_json = JSON.stringify(g.toSerializable(1), null, '  ');\n");
   out.write("var filename = process.argv[2];\n");
   out.write("var out = fs.createWriteStream(filename);\n");
 
