@@ -1,10 +1,10 @@
 const E = require("./jglr.js");
 const fs = require("fs");
 
-const Grammar = E.Grammar;
-const Nonterm = E.Nonterm;
-const Token = E.Token;
-const SrcLoc = E.SrcLoc;
+const Grammar = E.Grammar
+const Nonterm = E.Nonterm
+const Token = E.Token
+const SrcLoc = E.SrcLoc
 const Tokenizer = E.Tokenizer;
 const STICKY_REGEXP = E.STICKY_REGEXP;
 
@@ -116,8 +116,21 @@ function generateRules(rules, config) {
     }
   }
   ret.push("var g = new Grammar(" + JSON.stringify(config.name) + ", " + JSON.stringify(firstRule) + ");");
+  var allRules = {};
+  var ruleNames = []
   for (var i = 0; i < rules.kids.length; i++) {
-    var rule = generateRule(rules.kids[i]);
+    var rule = rules.kids[i];
+    var ruleName = rule.kids[0].value;
+    if (allRules[ruleName] === undefined) {
+      allRules[ruleName] = rule;
+      ruleNames.push(ruleName);
+    } else {
+      var alts = allRules[ruleName].kids[2];
+      alts.kids.push.apply(alts.kids, rule.kids[2].kids);
+    }
+  }
+  for (var i = 0; i < ruleNames.length; i++) {
+    var rule = generateRule(allRules[ruleNames[i]]);
     for (var j = 0; j < rule.rules.length; j++)
       ret.push(rule.rules[j]);
   }
@@ -221,7 +234,7 @@ function generateItem(ruleName, item) {
   } else if (item.name === "Star") {
     var ret = {rules: []};
     var newNameOne = ruleName;
-    var newNameStar = newNameOne + "_star";
+    var newNameStar = newNameOne + "*";
     var json_newNameOne = JSON.stringify(newNameOne);
     var json_newNameStar = JSON.stringify(newNameStar);
     ret.rules.push("g.addRule(" + json_newNameStar + ", [], E.Rule.Inline);");
@@ -262,7 +275,7 @@ function generateItem(ruleName, item) {
   } else if (item.name === "Opt") {
     var ret = {rules: []};
     var newNameOne = ruleName;
-    var newNameOpt = newNameOne + "_opt";
+    var newNameOpt = newNameOne + "?";
     var json_newNameOne = JSON.stringify(newNameOne);
     var json_newNameOpt = JSON.stringify(newNameOpt);
     ret.rules.push("g.addRule(" + json_newNameOpt + ", [], E.Rule.Inline);");
@@ -336,6 +349,6 @@ if (parsed !== undefined) {
   out.end();
 } else {
   var next_tok = toks.curTok || toks.next();
-  var msg = "Error reading grammar at token " + next_tok.toString(true) + " at position " + next_tok.pos.toString(true);
+  var msg = "Error reading grammar at token " + next_tok.toRepr(true) + " at position " + next_tok.pos.toString(true);
   throw msg;
 }
