@@ -27,4 +27,4 @@ lib/js
 .vscode
 .merlin
 .bsb.lock
-
+*.swp
