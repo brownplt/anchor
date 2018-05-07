@@ -10,6 +10,7 @@
   "license": "ISC",
   "dependencies": {
     "amd-loader": "0.0.8",
+    "bs-platform": "^3.0.0",
     "bucklescript": "0.0.2",
     "requirejs": "^2.3.5",
     "stopify": "^0.3.0",
