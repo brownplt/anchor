@@ -1,0 +1,9 @@
+#!/bin/bash
+
+set -x -e
+
+mkdir -p build/syntax
+
+node lib/jglr/parser-generator.js src/syntax/pyret-grammar.bnf build/syntax/pyret-grammar.js "../../lib/jglr" "jglr/jglr" "syntax/pyret-parser"
+
+node build/syntax/pyret-grammar.js build/syntax/pyret-parser.js
