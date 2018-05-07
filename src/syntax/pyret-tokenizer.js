@@ -1,4 +1,4 @@
-const E = require('../../lib/jglr/jglr');
+const E = require('../jglr/jglr');
 
 const Grammar = E.Grammar
 const Nonterm = E.Nonterm

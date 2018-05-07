@@ -1,9 +1,0 @@
-{
-  "compilerOptions": {
-    "module": "amd",
-    "outDir": "./build/",
-    "rootDir": "./src/",
-    "strict": true,
-    "esModuleInterop": true
-  }
-}

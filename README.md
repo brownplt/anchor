@@ -17,6 +17,11 @@ compiler.
 Building
 --------
 
-1. Run `make`.
+1. Run `./bin/build-parser` to build the parser.
 
-Then you should be able to run `src/start.js` with plain `node`.
+2. Run `yarn build` to generate JavaScript files.
+
+Then you should be able to run `lib/js/src/compiler/parseExpr.bs.js` with `node`.
+
+Note that BS doesn't allow us to configure the output directory so the `lib/js`
+directory is the actual build directory.

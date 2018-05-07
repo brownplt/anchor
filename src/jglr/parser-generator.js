@@ -324,13 +324,13 @@ if (parsed !== undefined) {
   out.write("var filename = process.argv[2];\n");
   out.write("var out = fs.createWriteStream(filename);\n");
 
+  out.write(`out.write(\"const E = require('${jglrLoadPath}');\");\n\n`);
   out.write("out.write(\"/** @param {{Grammar : {fromSerializable : !Function}, Nonterm : !Object, Token : !Object, Rule : !Object}} E */\\n\");\n");
-  out.write("out.write(\"function(E) {\\n\");\n");
-  out.write("out.write(\"  const Grammar = E.Grammar;\\n\");\n");
-  out.write("out.write(\"  const Nonterm = E.Nonterm;\\n\");\n");
-  out.write("out.write(\"  const Token = E.Token;\\n\");\n");
-  out.write("out.write(\"  const Rule = E.Rule;\\n\\n\");\n");
-  out.write("out.write(\"  var g_json = \" + g_json.replace(/\\n/g, \"\\n  \") + \";\\n\");\n");
+  out.write("out.write(\"const Grammar = E.Grammar;\\n\");\n");
+  out.write("out.write(\"const Nonterm = E.Nonterm;\\n\");\n");
+  out.write("out.write(\"const Token = E.Token;\\n\");\n");
+  out.write("out.write(\"const Rule = E.Rule;\\n\\n\");\n");
+  out.write("out.write(\"var g_json = \" + g_json.replace(/\\n/g, \"\\n  \") + \";\\n\");\n");
   out.write("out.write(\"  module.exports = { " + bnfJS.config.name + ": Grammar.fromSerializable(g_json) };\\n\");\n");
   out.write("out.end();\n");
   out.end();
