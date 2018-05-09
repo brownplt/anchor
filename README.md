@@ -1,7 +1,7 @@
 Anchor
 ======
 
-The next generation compiler for Pyret.
+An experimental compiler for Pyret.
 
 Requirements
 ------------
