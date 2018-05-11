@@ -53,6 +53,11 @@ let rec expr_to_ast (sast : surfaceAst) : expr =
   | "paren-expr" -> expr_to_ast (sast##kids).(1)
   | "num-expr" -> ENum((sast##kids).(0)##value)
   | "id-expr" -> EId((sast##kids).(0)##value)
+  | "app-expr" ->
+    let _ = Js.log sast in
+    EApp(
+      expr_to_ast (sast##kids).(0),
+      parse_args (sast##kids).(1))
   | "binop-expr" ->
     (match Array.length (sast##kids) with
     | 1 -> expr_to_ast (sast##kids).(0)
@@ -64,6 +69,10 @@ let rec expr_to_ast (sast : surfaceAst) : expr =
           EBinop(Plus, lhs, rhs)
         | _ -> ENum("9999")))
   | _ -> failwith ("unmatched node name: " ^ sast##name)
+
+and parse_args args =
+  let actual_args = ((args##kids).(1)##kids).(0)##kids in
+  List.map expr_to_ast (List.filter (fun x -> x##name != "COMMA") (Array.to_list actual_args))
 
 and header_to_ast header =
   let args = Array.to_list (header##kids).(1)##kids in
@@ -98,12 +107,12 @@ let compile (data: string) (filename: string) : string =
     | Some(sast) ->
       let ast = prog_to_ast sast in
       let ocaml_str = (match ast with
-        | Program(_, body) -> String.concat "\n" (List.map stupid_direct_compile_stmt body)) in
+        | Program(_, body) -> String.concat "\n" (List.map stupid_direct_compile_toplevel body)) in
       let _ = Js.log ocaml_str in
       compile_to_js ocaml_str
     | None ->
       failwith "Parse error"
 
 
-let () = Js.log (compile "fun f(x): x + 1 end" "")
+let () = Js.log (compile "fun f(x): x + 1 end\nf(4)" "")
 
