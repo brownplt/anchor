@@ -52,24 +52,43 @@ let rec expr_to_ast (sast : surfaceAst) : expr =
   | "prim-expr" -> expr_to_ast (sast##kids).(0)
   | "paren-expr" -> expr_to_ast (sast##kids).(1)
   | "num-expr" -> ENum((sast##kids).(0)##value)
+  | "id-expr" -> EId((sast##kids).(0)##value)
   | "binop-expr" ->
-    let op = ((sast##kids).(1)##kids).(0)##name in
-    (match op with
-      | "PLUS" ->
-        let lhs = expr_to_ast (sast##kids).(0) in
-        let rhs = expr_to_ast (sast##kids).(2) in
-        EBinop(Plus, lhs, rhs)
-      | _ -> ENum("9999"))
+    (match Array.length (sast##kids) with
+    | 1 -> expr_to_ast (sast##kids).(0)
+    | _ -> let op = ((sast##kids).(1)##kids).(0)##name in
+      (match op with
+        | "PLUS" ->
+          let lhs = expr_to_ast (sast##kids).(0) in
+          let rhs = expr_to_ast (sast##kids).(2) in
+          EBinop(Plus, lhs, rhs)
+        | _ -> ENum("9999")))
   | _ -> failwith ("unmatched node name: " ^ sast##name)
 
+and header_to_ast header =
+  let args = Array.to_list (header##kids).(1)##kids in
+  let bindings = List.filter (fun x -> x##name = "binding") args in
+  let names = List.map (fun x -> (((x##kids).(0)##kids).(0)##value, "anything")) bindings in
+  (names, "ignored")
+  
 and stmt_to_ast (sast : surfaceAst) : stmt =
   match sast##name with
-  | "stmt" -> SExpr(expr_to_ast (sast##kids).(0))
-  | _ -> failwith "Unknown stmt"
+  | "stmt" ->
+    let kid = (sast##kids).(0) in
+    (match kid##name with
+      | "fun-expr" ->
+        let (args, ret) = header_to_ast (kid##kids).(2) in
+        SFun(
+          (kid##kids).(1)##value,
+          args,
+          ret,
+          expr_to_ast (kid##kids).(5))
+      | _ -> SExpr(expr_to_ast kid))
+  | _ -> failwith ("Unknown stmt " ^ sast##name)
 
 let prog_to_ast (sast : surfaceAst) : program =
   match sast##name with
-  | "program" -> Program(Header, expr_to_ast (sast##kids).(1))
+  | "program" -> Program(Header, List.map stmt_to_ast (Array.to_list ((sast##kids).(1)##kids)))
 
   
 
@@ -79,11 +98,12 @@ let compile (data: string) (filename: string) : string =
     | Some(sast) ->
       let ast = prog_to_ast sast in
       let ocaml_str = (match ast with
-        | Program(_, body) -> stupid_direct_compile body) in
+        | Program(_, body) -> String.concat "\n" (List.map stupid_direct_compile_stmt body)) in
+      let _ = Js.log ocaml_str in
       compile_to_js ocaml_str
     | None ->
       failwith "Parse error"
 
 
-let () = Js.log (compile "5 + (1 + 4)" "")
+let () = Js.log (compile "fun f(x): x + 1 end" "")
 

@@ -1,12 +1,5 @@
-
-type atom =
-  | Surface of string
-  | Synth of string * string
-  | Local of string * string
-  | Nonlocal of string * string
-
 type name =
-  | Name of atom ref
+  | Name of string
 
 type op =
   | Plus
@@ -17,14 +10,15 @@ type expr =
   | ENum of string
   | EStr of string
   | EApp of expr * expr list
+  | EId of string
 
 and stmt =
   | SExpr of expr
-  | SFun of name * (name * name) list * name * expr
+  | SFun of string * (string * string) list * string * expr
 
 type header =
   | Header
 
 type program =
-  | Program of header * expr
+  | Program of header * stmt list
 
