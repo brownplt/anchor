@@ -1,0 +1,25 @@
+{
+  "name": "anchor",
+  "version": "0.0.1",
+  "description": "Check out the server-dev branch of pyret-lang, and build it and link it:",
+  "main": "index.js",
+  "directories": {
+    "lib": "lib"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/brownplt/anchor.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/brownplt/anchor/issues"
+  },
+  "homepage": "https://github.com/brownplt/anchor#readme",
+  "devDependencies": {
+    "requirejs": "^2.3.5"
+  }
+}

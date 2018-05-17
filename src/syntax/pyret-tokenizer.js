@@ -1,4 +1,4 @@
-const E = require('../jglr/jglr');
+define("pyret-tokenizer", ["jglr/jglr"], function(E) {
 
 const Grammar = E.Grammar
 const Nonterm = E.Nonterm
@@ -368,6 +368,7 @@ Tokens.forEach(function(tok) {
   else if (tok.parenIsForExp == true) tok.parenIsForExp = "PARENSPACE";
 });
 
-module.exports = {
+return {
   'Tokenizer': new Tokenizer(true, Tokens)
 };
+});

@@ -1,3 +1,4 @@
+define("jglr/cyclicJSON", [], function() {
 /*
   cycle.js
   2013-02-19
@@ -170,3 +171,4 @@ if (typeof JSON.retrocycle !== 'function') {
     return $;
   };
 }
+});

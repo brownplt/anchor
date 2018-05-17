@@ -1,5 +1,12 @@
-const E = require("./jglr.js");
-const fs = require("fs");
+const R = require('requirejs');
+
+R.config({
+  paths: {
+    "jglr": "./"
+  }
+});
+
+R(['jglr/jglr', 'fs'], function(E, fs) {
 
 const Grammar = E.Grammar
 const Nonterm = E.Nonterm
@@ -313,8 +320,9 @@ if (parsed !== undefined) {
   var jglrLoadPath = process.argv[5];
   var moduleName = process.argv[6];
   var out = fs.createWriteStream(filename);
-  out.write("const fs = require('fs');\n");
-  out.write(`const E = require('${jglrRunPath}/jglr');\n\n`);
+  out.write("const R = require('requirejs');\n\n");
+  out.write("R.config({paths: {'jglr': '" + jglrRunPath + "'}});\n\n");
+  out.write("R(['fs', 'jglr/jglr'], function(fs, E) {\n");
   out.write("const Grammar = E.Grammar\n");
   out.write("const Nonterm = E.Nonterm\n");
   out.write("const Token = E.Token\n");
@@ -337,18 +345,22 @@ if (parsed !== undefined) {
   out.write("var filename = process.argv[2];\n");
   out.write("var out = fs.createWriteStream(filename);\n");
 
-  out.write(`out.write(\"const E = require('${jglrLoadPath}');\");\n\n`);
+  out.write("  out.write(\"define('" + moduleName + "', ['" + jglrLoadPath + "'],\\n\");\n");
   out.write("out.write(\"/** @param {{Grammar : {fromSerializable : !Function}, Nonterm : !Object, Token : !Object, Rule : !Object}} E */\\n\");\n");
+  out.write("  out.write(\"function(E) {\\n\");\n");
   out.write("out.write(\"const Grammar = E.Grammar;\\n\");\n");
   out.write("out.write(\"const Nonterm = E.Nonterm;\\n\");\n");
   out.write("out.write(\"const Token = E.Token;\\n\");\n");
   out.write("out.write(\"const Rule = E.Rule;\\n\\n\");\n");
   out.write("out.write(\"var g_json = \" + g_json.replace(/\\n/g, \"\\n  \") + \";\\n\");\n");
-  out.write("out.write(\"  module.exports = { " + bnfJS.config.name + ": Grammar.fromSerializable(g_json) };\\n\");\n");
+  out.write("out.write(\"  return { " + bnfJS.config.name + ": Grammar.fromSerializable(g_json) };\\n\");\n");
+  out.write("  out.write(\"});\\n\");\n");
   out.write("out.end();\n");
+  out.write("});\n");
   out.end();
 } else {
   var next_tok = toks.curTok || toks.next();
   var msg = "Error reading grammar at token " + next_tok.toRepr(true) + " at position " + next_tok.pos.toString(true);
   throw msg;
 }
+});

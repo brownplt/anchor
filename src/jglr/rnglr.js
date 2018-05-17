@@ -1,4 +1,4 @@
-const cycle = require("./cyclicJSON");
+define("jglr/rnglr", ["jglr/cyclicJSON"], function(cycle) {
 
 function SrcLoc(startRow, startCol, startChar, endRow, endCol, endChar) {
   this.startRow = startRow;
@@ -2667,7 +2667,7 @@ Grammar.prototype = {
 }
 
 
-module.exports = {
+return {
   Atom: Atom,
   Nonterm: Nonterm,
   Token: Token,
@@ -2678,3 +2678,4 @@ module.exports = {
   EPSILON: EPSILON,
   SrcLoc: SrcLoc
 };
+});

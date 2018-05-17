@@ -1,0 +1,20 @@
+{
+  "use-raw-files": true,
+  "raw-js": {
+    "pyret-base/js/codePoint": "$PYRET/js/codePoint.js",
+    "pyret-base/js/exn-stack-parser": "$PYRET/js/exn-stack-parser.js",
+    "pyret-base/js/js-numbers": "$PYRET/js/js-numbers.js",
+    "pyret-base/js/namespace": "$PYRET/js/namespace.js",
+    "pyret-base/js/runtime.js": "$PYRET/js/runtime.js",
+    "pyret-base/js/runtime-util": "$PYRET/js/runtime-util.js",
+    "pyret-base/js/type-util": "$PYRET/js/type-util.js",
+    "pyret-base/js/secure-loader": "$PYRET/js/secure-loader.js",
+    "pyret-base/js/post-load-hooks": "$PYRET/js/post-load-hooks.js",
+
+    "pyret-parser": "build/syntax/pyret-parser.js",
+    "pyret-tokenizer": "build/syntax/pyret-tokenizer.js",
+    "jglr/jglr": "src/jglr/jglr.js",
+    "jglr/rnglr": "src/jglr/rnglr.js",
+    "jglr/cyclicJSON": "src/jglr/cyclicJSON.js"
+  }
+}

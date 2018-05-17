@@ -1,4 +1,4 @@
-const E = require("./rnglr");
+define("jglr/jglr", ["jglr/rnglr"], function(E) {
 const SrcLoc = E.SrcLoc;
 
 function Tokenizer(ignore_ws, Tokens) {
@@ -80,7 +80,7 @@ Tokenizer.prototype.next = function() {
   }
 }
 
-module.exports = {
+return {
   'Tokenizer': Tokenizer,
   'STICKY_REGEXP': STICKY_REGEXP,
   'Atom': E.Atom,
@@ -93,3 +93,4 @@ module.exports = {
   'EPSILON': E.EPSILON,
   'SrcLoc': E.SrcLoc
 };
+});

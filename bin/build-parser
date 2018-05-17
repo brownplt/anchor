@@ -2,12 +2,12 @@
 
 set -x -e
 
-mkdir -p lib/js/src/syntax
+mkdir -p build/syntax
 
-cp src/syntax/pyret-tokenizer.js lib/js/src/syntax
+cp src/syntax/pyret-tokenizer.js build/syntax
 
-cp -R src/jglr lib/js/src
+cp -R src/jglr build/syntax
 
-node src/jglr/parser-generator.js src/syntax/pyret-grammar.bnf lib/js/src/syntax/pyret-grammar.js "../jglr" "../jglr/jglr" "syntax/pyret-parser"
+node src/jglr/parser-generator.js src/syntax/pyret-grammar.bnf build/syntax/pyret-grammar.js "./jglr" "jglr/jglr" "pyret-parser"
 
-node lib/js/src/syntax/pyret-grammar.js lib/js/src/syntax/pyret-parser.js
+node build/syntax/pyret-grammar.js build/syntax/pyret-parser.js
