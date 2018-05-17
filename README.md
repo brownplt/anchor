@@ -8,6 +8,13 @@ $ npm install
 $ npm link ./
 ```
 
-This should make the `pyret` command available on your system, after which you
-can run `make` in this repository.
 
+This should make the `pyret` command available on your system, after which you
+can run setup in this repository:
+
+```
+$ ./bin/build-parser
+$ make
+```
+
+Which will build `build/pyret.jarr`
