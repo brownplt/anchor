@@ -2725,7 +2725,7 @@ no-builtins = compile-env(globals([string-dict: ], [string-dict: ]), [string-dic
 
 minimal-builtins = compile-env(globals(runtime-builtins, runtime-types), [string-dict: "builtin(global)", runtime-provides])
 
-standard-globals = globals(runtime-builtins, runtime-types)
+standard-globals = globals([string-dict:], [string-dict:])
 standard-builtins = compile-env(globals(runtime-builtins, runtime-types), [string-dict: "builtin(global)", runtime-provides])
 
 minimal-imports = extra-imports(empty)

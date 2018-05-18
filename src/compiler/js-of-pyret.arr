@@ -41,6 +41,9 @@ data CompiledCodePrinter:
     end,
     method print-js-runnable(self, printer):
       self.to-j-expr(self.dict).print-ugly-source(printer)
+    end,
+    method print-js-module(self, printer):
+      self.dict.get-value("theModule").print-ugly-source(printer)
     end
   | ccp(compiled :: J.JExpr) with:
     method pyret-to-js-pretty(self) -> PP.PPrintDoc:
@@ -85,13 +88,13 @@ end
 
 fun make-compiled-pyret(program-ast, env, bindings, type-bindings, provides, options) -> { C.Provides; CompiledCodePrinter} block:
   {provides; 
-    [SD.string-dict:
-      "requires", J.j-list(true, CL.cl-empty),
-      "provides", J.j-obj(CL.cl-empty),
-      "nativeRequires", J.j-list(true, CL.cl-empty),
+    C.ok(ccp-dict([SD.string-dict:
+      "requires", J.j-list(true, cl-empty),
+      "provides", J.j-obj(cl-empty),
+      "nativeRequires", J.j-list(true, cl-empty),
       "theModule",
         J.j-raw-code("console.log('node was here');\nmodule.exports = ['practically', 'perfect'];"),
       "theMap", J.j-str("{}")
-      ]}
+      ]))}
 end
 

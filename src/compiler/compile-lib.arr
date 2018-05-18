@@ -94,9 +94,6 @@ type Either = E.Either
 
 mtd = [SD.string-dict:]
 
-# for re-export
-standard-builtins = CS.standard-builtins
-
 type URI = String
 
 data PyretCode:
@@ -408,7 +405,7 @@ fun compile-module(locator :: Locator, provide-map :: SD.StringDict<CS.Provides>
             var desugared = D.desugar(named-result.ast)
             named-result.bindings.merge-now(desugared.new-binds)
             # ...in order to be checked for bad assignments here
-            any-errors := RS.check-unbound-ids-bad-assignments(desugared.ast, named-result, env)
+            any-errors := empty # RS.check-unbound-ids-bad-assignments(desugared.ast, named-result, env)
             add-phase("Fully desugared", desugared.ast)
             var type-checked =
               if options.type-check:

@@ -59,7 +59,7 @@ fun make-builtin-js-locator(basedir, builtin-name):
       raise("Should never fetch source for builtin module " + builtin-name)
     end,
     method get-extra-imports(self):
-      CM.standard-imports
+      CM.minimal-imports
     end,
     method get-dependencies(_):
       deps = raw.get-raw-dependencies()

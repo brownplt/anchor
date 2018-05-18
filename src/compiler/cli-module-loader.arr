@@ -246,10 +246,13 @@ fun set-loadable(basedir, locator, loadable) -> String block:
     | ok(ccp) =>
       save-static-path = P.join(basedir, uri-to-path(locuri, locator.name()) + "-static.js")
       save-module-path = P.join(basedir, uri-to-path(locuri, locator.name()) + "-module.js")
+      run-module-path = P.join(basedir, uri-to-path(locuri, locator.name()) + "-run.js")
       fs = F.output-file(save-static-path, false)
       fm = F.output-file(save-module-path, false)
+      fr = F.output-file(run-module-path, false)
 
       ccp.print-js-runnable(fm.display)
+      ccp.print-js-module(fr.display)
 
       # NOTE(joe August 2017): This is a little bit dumb. When caching a file,
       # if we have enough information, split it into -static and -module
@@ -269,6 +272,8 @@ fun set-loadable(basedir, locator, loadable) -> String block:
       fs.close-file()
       fm.flush()
       fm.close-file()
+      fr.flush()
+      fr.close-file()
 
       save-module-path
     | err(_) => ""
@@ -451,18 +456,13 @@ fun build-program(path, options, stats) block:
   ans
 end
 
-fun build-runnable-standalone(path, require-config-path, outfile, options) block:
+fun build-runnable-standalone(path, outfile, options) block:
   stats = SD.make-mutable-string-dict()
   maybe-program = build-program(path, options, stats)
   cases(Either) maybe-program block:
     | left(problems) =>
       handle-compilation-errors(problems, options)
     | right(program) =>
-      config = JSON.read-json(F.file-to-string(require-config-path)).dict.unfreeze()
-      config.set-now("out", JSON.j-str(P.resolve(P.join(options.base-dir, outfile))))
-      when not(config.has-key-now("baseUrl")):
-        config.set-now("baseUrl", JSON.j-str(options.compiled-cache))
-      end
       nothing
       #|
 

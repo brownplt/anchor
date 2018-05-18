@@ -29,7 +29,7 @@ fun make-jsfile-locator(path):
       raise("Should never fetch source for builtin module " + path)
     end,
     method get-extra-imports(self):
-      CM.standard-imports
+      CM.minimal-imports
     end,
     method get-dependencies(_):
       deps = raw.get-raw-dependencies()

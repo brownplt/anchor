@@ -25,7 +25,6 @@ cases(C.ParsedArguments) params-parsed block:
   compiled-dir = r.get-value("compiled-dir")
   CLI.build-runnable-standalone(
       rest.first,
-      "unused",
       rest.first + ".jarr",
       CS.default-compile-options.{
         this-pyret-dir: this-pyret-dir,
