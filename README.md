@@ -5,6 +5,7 @@ $ git clone https://github.com/brownplt/pyret-lang
 $ cd pyret-lang
 $ git checkout server-dev
 $ npm install
+$ make
 $ npm link ./
 ```
 

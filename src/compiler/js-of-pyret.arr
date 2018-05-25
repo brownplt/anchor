@@ -9,6 +9,7 @@ import file("ast-util.arr") as AU
 import file("compile-structs.arr") as C
 import file("concat-lists.arr") as CL
 import file("js-ast.arr") as J
+import file("direct-codegen.arr") as D
 
 cl-empty = CL.concat-empty
 cl-cons = CL.concat-cons
@@ -88,13 +89,6 @@ end
 
 fun make-compiled-pyret(program-ast, env, bindings, type-bindings, provides, options) -> { C.Provides; CompiledCodePrinter} block:
   {provides; 
-    C.ok(ccp-dict([SD.string-dict:
-      "requires", J.j-list(true, cl-empty),
-      "provides", J.j-obj(cl-empty),
-      "nativeRequires", J.j-list(true, cl-empty),
-      "theModule",
-        J.j-raw-code("console.log('node was here');\nmodule.exports = ['practically', 'perfect'];"),
-      "theMap", J.j-str("{}")
-      ]))}
+    C.ok(ccp-dict(D.compile-program(program-ast, env, provides, options)))}
 end
 

@@ -379,7 +379,9 @@ fun compile-module(locator :: Locator, provide-map :: SD.StringDict<CS.Provides>
         | ok(_) =>
           var wf-ast = wf.code
           wf := nothing
-          var checked = checker(wf-ast)
+          var checked = wf-ast
+          # NOTE(joe, anchor): no desugaring of check blocks
+          # checker(wf-ast)
           wf-ast := nothing
           add-phase(if not(options.checks == "none"): "Desugared (with checks)" else: "Desugared (skipping checks)" end, checked)
           var imported = AU.wrap-extra-imports(checked, libs)
@@ -402,21 +404,26 @@ fun compile-module(locator :: Locator, provide-map :: SD.StringDict<CS.Provides>
             add-phase("Resolved names", named-result)
             var provides = AU.get-named-provides(named-result, locator.uri(), env)
             # Once name resolution has happened, any newly-created s-binds must be added to bindings...
-            var desugared = D.desugar(named-result.ast)
-            named-result.bindings.merge-now(desugared.new-binds)
+            var desugared = named-result.ast
+            
+            # NOTE(joe, anchor): removed this to see what un-desugared output looks like
+            # and changed desugared.ast to desugared below
+            # D.desugar(named-result.ast)
+            # named-result.bindings.merge-now(desugared.new-binds)
+
             # ...in order to be checked for bad assignments here
-            any-errors := empty # RS.check-unbound-ids-bad-assignments(desugared.ast, named-result, env)
-            add-phase("Fully desugared", desugared.ast)
+            any-errors := RS.check-unbound-ids-bad-assignments(desugared, named-result, env)
+            add-phase("Fully desugared", desugared)
             var type-checked =
               if options.type-check:
-                type-checked = T.type-check(desugared.ast, env, modules)
+                type-checked = T.type-check(desugared)
                 if CS.is-ok(type-checked) block:
                   provides := AU.get-typed-provides(type-checked.code, locator.uri(), env)
                   CS.ok(type-checked.code.ast)
                 else:
                   type-checked
                 end
-              else: CS.ok(desugared.ast)
+              else: CS.ok(desugared)
               end
             desugared := nothing
             add-phase("Type Checked", type-checked)
