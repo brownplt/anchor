@@ -275,16 +275,70 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
         {cl-snoc(argvs, argv); argstmts + stmts}
       end
       { j-app(fv, argvs); fstmts + argstmts }
-      
-    | s-letrec(l, binds, body, _) =>
-      
-      prelude = for fold(stmts from cl-empty, v from binds):
+
+    | s-let-expr(l, binds, body, _) =>
+
+      prelude = for fold(stmts from cl-empty, v from binds.reverse()):
         { val; v-stmts } = compile-expr(context, v.value)
-        v-stmts + [clist: j-var(v.b.id, val)] + stmts
+        v-stmts + [clist: j-var(js-id-of(v.b.id), val)] + stmts
       end
       {bv; body-stmts} = compile-expr(context, body)
       {bv; prelude + body-stmts}
       
+    | s-letrec(l, binds, body, _) =>
+      
+      prelude = for fold(stmts from cl-empty, v from binds.reverse()):
+        { val; v-stmts } = compile-expr(context, v.value)
+        v-stmts + [clist: j-var(js-id-of(v.b.id), val)] + stmts
+      end
+      {bv; body-stmts} = compile-expr(context, body)
+      {bv; prelude + body-stmts}
+
+    | s-type-let-expr(_, binds, body, _) =>
+      # Because if we're taking type seriously, this can't fail! 
+      compile-expr(context, body)
+
+    | s-data-expr(l, name, namet, params, mixins, variants, shared, _check-loc, _check) =>
+
+      variant-uniqs = for fold(uniqs from [D.string-dict:], v from variants):
+        uniqs.set(v.name, fresh-id(compiler-name(v.name)))
+      end
+
+      variant-uniq-defs = for CL.map_list(v from variants):
+        j-var(js-id-of(variant-uniqs.get-value(v.name)), j-obj([clist:]))
+      end
+
+      variant-constructors = for CL.map_list(v from variants):
+        cases(A.Variant) v:
+          | s-variant(_, cl, shadow name, members, _) =>
+            args = for map(m from members): js-id-of(m.bind.id) end
+            j-field(name,
+              j-fun(0, js-id-of(const-id(name)).toname(), args,
+                j-block1(
+                  j-return(j-obj(
+                    [clist: j-field("$brand", j-id(js-id-of(variant-uniqs.get-value(name))))] +
+                    for CL.map_list(m from members):
+                      j-field(m.bind.id.toname(), j-id(js-id-of(m.bind.id)))
+                    end)))))
+          | s-singleton-variant(_, shadow name, with-members) =>
+            j-field(name, j-obj([clist: j-field("$brand", j-id(js-id-of(variant-uniqs.get-value(name))))]))
+        end
+      end
+
+      variant-recognizers = for CL.map_list(v from variants):
+        j-field("is-" + v.name,
+          j-fun(0, js-id-of(const-id(v.name)).toname(), [clist: const-id("val")],
+            j-block1(
+              j-return(j-binop(j-dot(j-id(const-id("val")), "$brand"), j-eq, j-id(js-id-of(variant-uniqs.get-value(v.name))))))))
+      end
+
+      { j-obj(variant-constructors + variant-recognizers); variant-uniq-defs }
+      
+    | s-dot(l, obj, field) =>
+      
+      {objv; obj-stmts} = compile-expr(context, obj)
+      
+      {j-bracket(objv, j-str(field)); obj-stmts}
 
     | s-instantiate(l, inner-expr, params) => nyi("s-instantiate")
     | s-user-block(l, body) => nyi("s-user-block")
@@ -292,9 +346,6 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
     | s-method(l, name, params, args, ann, doc, body, _check-loc, _check, blocky) => nyi("s-method")
     | s-type(l, name, params, ann) => nyi("s-type")
     | s-newtype(l, name, namet) => nyi("s-newtype")
-    | s-type-let-expr(l, binds, body, blocky) => nyi("s-type-let-expr")
-    | s-let-expr(l, binds, body, blocky) => nyi("s-let-expr")
-    | s-data-expr(l, name, namet, params, mixins, variants, shared, _check-loc, _check) => nyi("s-data-expr")
     | s-when(l, test, body, blocky) => nyi("s-when")
     | s-if(l, branches, blocky) => nyi("s-if")
     | s-if-else(l, branches, _else, blocky) => nyi("s-if-else")
@@ -303,7 +354,6 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
     | s-cases(l, typ, val, branches, blocky) => nyi("s-cases")
     | s-cases-else(l, typ, val, branches, _else, blocky) => nyi("s-cases-else")
     | s-assign(l, id, val) => nyi("s-assign")
-    | s-dot(l, obj, field) => nyi("s-dot")
     | s-bracket(l, obj, key) => nyi("s-bracket")
     | s-get-bang(l, obj, field) => nyi("s-get-bang")
     | s-update(l, obj, fields) => nyi("s-update")
@@ -334,7 +384,7 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
     | s-table-order(l, table, ordering) => nyi("s-table-order")
     | s-table-filter(l, column-binds, predicate) => nyi("s-table-filter")
     | s-spy-block(l, message, contents) => nyi("s-spy-block")
-    | else => raise("NYI (desugar): " + torepr(expr))
+    | else => raise("NYI (compile): " + torepr(expr))
   end
 
 end
