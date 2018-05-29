@@ -1,7 +1,7 @@
 Anchor
 ======
 
-An experimental compiler for Pyret.
+Back-end compiler experiments for Pyret.
 
 Requirements
 ------------
