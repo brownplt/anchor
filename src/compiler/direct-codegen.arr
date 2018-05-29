@@ -274,6 +274,7 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
       { rv; rstmts } = compile-expr(context, right)
       val = ask:
         | op == "op+" then: j-binop(lv, J.j-plus, rv)
+        | op == "op-" then: j-binop(lv, J.j-minus, rv)
         | op == "op==" then: j-binop(lv, J.j-eq, rv)
         | otherwise: nyi(op)
       end
@@ -363,7 +364,25 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
       
       {j-bracket(objv, j-str(field)); obj-stmts}
 
+    | s-if-else(l, branches, _else, _) =>
+
+      ans = fresh-id(compiler-name("ans"))
+
+      { else-v; else-stmts } = compile-expr(context, _else)
+      else-block = j-block(else-stmts + [clist: j-assign(ans, else-v)])
+      
+      blck = for fold(blck from else-block, b from branches.reverse()):
+        { test-v; test-stmts } = compile-expr(context, b.test)
+        { body-v; body-stmts } = compile-expr(context, b.body)
+        j-block(test-stmts + [clist:
+          j-if(test-v, j-block(body-stmts + [clist: j-assign(ans, body-v)]), blck)])
+      end
+
+      { j-id(ans); [clist: j-var(ans, j-undefined)] + blck.stmts }
+
     | s-cases-else(l, typ, val, branches, _else, blocky) =>
+
+      ans = fresh-id(compiler-name("ans"))
       
       { val-v; val-stmts } = compile-expr(context, val)
 
@@ -385,8 +404,6 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
         val-and-tag.value
       end
 
-      ans = fresh-id(compiler-name("ans"))
-
       switch-blocks = for CL.map_list(b from branches):
         {variant; tag} = get-tag-and-variant(b.name)
         cases(A.CasesBranch) b:
@@ -396,7 +413,7 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
               j-var(js-id-of(a.bind.id), j-bracket(val-v, j-str(m.bind.id.toname())))
             end
             j-case(j-num(tag),
-              j-block(arg-binds + body-stmts + [clist: j-var(ans, body-val), j-break]))
+              j-block(arg-binds + body-stmts + [clist: j-expr(j-assign(ans, body-val)), j-break]))
           | s-singleton-cases-branch(_, pl, name, body) =>
             {body-val; body-stmts} = compile-expr(context, body)
             j-case(j-num(tag),
@@ -425,7 +442,6 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
     | s-newtype(l, name, namet) => nyi("s-newtype")
     | s-when(l, test, body, blocky) => nyi("s-when")
     | s-if(l, branches, blocky) => nyi("s-if")
-    | s-if-else(l, branches, _else, blocky) => nyi("s-if-else")
     | s-if-pipe(l, branches, blocky) => nyi("s-if-pipe")
     | s-if-pipe-else(l, branches, _else, blocky) => nyi("s-if-pipe-else")
     | s-cases(l, typ, val, branches, blocky) => nyi("s-cases")
