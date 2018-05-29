@@ -78,17 +78,17 @@ data CompiledCodePrinter:
     end
 end
 
-fun trace-make-compiled-pyret(add-phase, program-ast, env, bindings, type-bindings, provides, options)
+fun trace-make-compiled-pyret(add-phase, program-ast, env, bindings, type-bindings, datatypes, provides, options)
   -> { C.Provides; C.CompileResult<CompiledCodePrinter> } block:
-  make-compiled-pyret(program-ast, env, bindings, type-bindings, provides, options)
+  make-compiled-pyret(program-ast, env, bindings, type-bindings, datatypes, provides, options)
 end
 
 fun println(s) block:
   print(s + "\n")
 end
 
-fun make-compiled-pyret(program-ast, env, bindings, type-bindings, provides, options) -> { C.Provides; CompiledCodePrinter} block:
+fun make-compiled-pyret(program-ast, env, bindings, type-bindings, datatypes, provides, options) -> { C.Provides; CompiledCodePrinter} block:
   {provides; 
-    C.ok(ccp-dict(D.compile-program(program-ast, env, provides, options)))}
+    C.ok(ccp-dict(D.compile-program(program-ast, env, datatypes, provides, options)))}
 end
 

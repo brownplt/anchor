@@ -17,6 +17,7 @@ desugar-visitor = A.default-map-visitor.{
   method s-template(self, l):
     A.s-prim-app(l, "throwUnfinishedTemplate", [list: A.s-srcloc(l, l)])
   end,
+#| NOTE(joe anchor): removing these cases because we WANT the annotations!
   method s-cases-else(self, l, typ, val, branches, els, blocky):
     name = A.global-names.make-atom("cases")
     typ-compiled = typ.visit(self)
@@ -35,6 +36,7 @@ desugar-visitor = A.default-map-visitor.{
       A.s-cases-else(l, A.a-blank, val-id, branches.map(_.visit(self)),
         A.s-block(l, [list: no-cases-exn(l, val-id)]), true), false)
   end,
+|#
   method s-check(self, l, name, body, keyword-check):
     A.s-id(l, A.s-global("nothing"))
   end

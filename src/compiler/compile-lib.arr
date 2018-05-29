@@ -408,7 +408,7 @@ fun compile-module(locator :: Locator, provide-map :: SD.StringDict<CS.Provides>
             
             # NOTE(joe, anchor): removed this to see what un-desugared output looks like
             # and changed desugared.ast to desugared below
-            # D.desugar(named-result.ast)
+            # var desugared = D.desugar(named-result.ast)
             # named-result.bindings.merge-now(desugared.new-binds)
 
             # ...in order to be checked for bad assignments here
@@ -445,7 +445,7 @@ fun compile-module(locator :: Locator, provide-map :: SD.StringDict<CS.Provides>
                 end
                 add-phase("Cleaned AST", cleaned)
                 {final-provides; cr} = if is-empty(any-errors):
-                  JSP.trace-make-compiled-pyret(add-phase, cleaned, env, named-result.bindings, named-result.type-bindings, provides, options)
+                  JSP.trace-make-compiled-pyret(add-phase, cleaned, env, named-result.bindings, named-result.type-bindings, named-result.datatypes, provides, options)
                 else:
                   if options.collect-all and options.ignore-unbound:
                     JSP.trace-make-compiled-pyret(add-phase, cleaned, env, options)

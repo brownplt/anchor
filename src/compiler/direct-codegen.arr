@@ -60,6 +60,7 @@ j-typeof = J.j-typeof
 j-instanceof = J.j-instanceof
 j-ternary = J.j-ternary
 j-null = J.j-null
+j-undefined = J.j-undefined
 j-parens = J.j-parens
 j-switch = J.j-switch
 j-case = J.j-case
@@ -71,6 +72,24 @@ j-while = J.j-while
 j-for = J.j-for
 j-raw-code = J.j-raw-code
 
+
+fun find-index<a>(f :: (a -> Boolean), lst :: List<a>) -> Option<{a; Number}> block:
+  doc: ```Returns value and its index or -1 depending on if element is found```
+  var i = 0
+  var val = none
+  var seen = false
+  builtins.raw-list-fold(lam(_, elt):
+      if f(elt) and not(seen) block:
+        seen := true
+        val := some({elt; i})
+      else if not(seen):
+        i := i + 1
+      else:
+        nothing
+      end
+    end, nothing, lst)
+  val
+end
 
 fun make-fun-name(compiler, loc) -> String:
   "_" + sha.sha256(compiler.uri) + "__" + num-to-string(compiler.get-loc-id(loc))
@@ -204,7 +223,7 @@ end
 
 
 fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
-  cases(A.Expr) expr:
+  cases(A.Expr) expr block:
     | s-module(l, answer, dvs, dts, provides, types, checks) =>
       
       {a-exp; a-stmts} = compile-expr(context, answer)
@@ -255,6 +274,7 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
       { rv; rstmts } = compile-expr(context, right)
       val = ask:
         | op == "op+" then: j-binop(lv, J.j-plus, rv)
+        | op == "op==" then: j-binop(lv, J.j-eq, rv)
         | otherwise: nyi(op)
       end
       { val; lstmts + rstmts }
@@ -298,7 +318,7 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
       # Because if we're taking type seriously, this can't fail! 
       compile-expr(context, body)
 
-    | s-data-expr(l, name, namet, params, mixins, variants, shared, _check-loc, _check) =>
+    | s-data-expr(l, name, _, namet, params, mixins, variants, shared, _check-loc, _check) =>
 
       variant-uniqs = for fold(uniqs from [D.string-dict:], v from variants):
         uniqs.set(v.name, fresh-id(compiler-name(v.name)))
@@ -308,7 +328,7 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
         j-var(js-id-of(variant-uniqs.get-value(v.name)), j-obj([clist:]))
       end
 
-      variant-constructors = for CL.map_list(v from variants):
+      variant-constructors = for CL.map_list_n(local-tag from 0, v from variants):
         cases(A.Variant) v:
           | s-variant(_, cl, shadow name, members, _) =>
             args = for map(m from members): js-id-of(m.bind.id) end
@@ -316,12 +336,15 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
               j-fun(0, js-id-of(const-id(name)).toname(), args,
                 j-block1(
                   j-return(j-obj(
-                    [clist: j-field("$brand", j-id(js-id-of(variant-uniqs.get-value(name))))] +
+                    [clist: j-field("$brand", j-id(js-id-of(variant-uniqs.get-value(name)))),
+                            j-field("$tag", j-num(local-tag))] +
                     for CL.map_list(m from members):
                       j-field(m.bind.id.toname(), j-id(js-id-of(m.bind.id)))
                     end)))))
           | s-singleton-variant(_, shadow name, with-members) =>
-            j-field(name, j-obj([clist: j-field("$brand", j-id(js-id-of(variant-uniqs.get-value(name))))]))
+            j-field(name, j-obj([clist:
+              j-field("$brand", j-id(js-id-of(variant-uniqs.get-value(name)))),
+              j-field("$tag", j-num(local-tag))]))
         end
       end
 
@@ -340,6 +363,60 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
       
       {j-bracket(objv, j-str(field)); obj-stmts}
 
+    | s-cases-else(l, typ, val, branches, _else, blocky) =>
+      
+      { val-v; val-stmts } = compile-expr(context, val)
+
+      datatype = cases(A.Ann) typ block:
+        | a-name(_, name) =>
+          print(context.datatypes.keys-now())
+          cases(Option) context.datatypes.get-now(name.key()):
+            | some(dt) => dt
+            | none => raise("Unknown datatype name: " + to-repr(typ))
+          end
+        | else => raise("Can only do cases on a known datatype annotation, not on " + to-repr(typ))
+      end
+
+      fun get-tag-and-variant(name) block:
+        val-and-tag = for find-index(v from datatype.variants):
+          v.name == name
+        end
+        when(is-none(val-and-tag)): raise("No such variant: " + name) end
+        val-and-tag.value
+      end
+
+      ans = fresh-id(compiler-name("ans"))
+
+      switch-blocks = for CL.map_list(b from branches):
+        {variant; tag} = get-tag-and-variant(b.name)
+        cases(A.CasesBranch) b:
+          | s-cases-branch(_, pl, name, args, body) =>
+            {body-val; body-stmts} = compile-expr(context, body)
+            arg-binds = for CL.map_list2(a from args, m from variant.members):
+              j-var(js-id-of(a.bind.id), j-bracket(val-v, j-str(m.bind.id.toname())))
+            end
+            j-case(j-num(tag),
+              j-block(arg-binds + body-stmts + [clist: j-var(ans, body-val), j-break]))
+          | s-singleton-cases-branch(_, pl, name, body) =>
+            {body-val; body-stmts} = compile-expr(context, body)
+            j-case(j-num(tag),
+              j-block(body-stmts + [clist: j-expr(j-assign(ans, body-val)), j-break]))
+        end
+      end
+      
+      { else-v; else-stmts } = compile-expr(context, _else)
+
+      else-case = j-default(j-block(else-stmts + [clist: j-expr(j-assign(ans, else-v))]))
+
+      {
+        j-id(ans);
+        val-stmts +
+        [clist:
+          j-var(ans, j-undefined),
+          j-switch(j-dot(val-v, "$tag"), switch-blocks + [clist: else-case])
+          ]
+      }
+
     | s-instantiate(l, inner-expr, params) => nyi("s-instantiate")
     | s-user-block(l, body) => nyi("s-user-block")
     | s-template(l) => nyi("s-template")
@@ -352,7 +429,6 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
     | s-if-pipe(l, branches, blocky) => nyi("s-if-pipe")
     | s-if-pipe-else(l, branches, _else, blocky) => nyi("s-if-pipe-else")
     | s-cases(l, typ, val, branches, blocky) => nyi("s-cases")
-    | s-cases-else(l, typ, val, branches, _else, blocky) => nyi("s-cases-else")
     | s-assign(l, id, val) => nyi("s-assign")
     | s-bracket(l, obj, key) => nyi("s-bracket")
     | s-get-bang(l, obj, field) => nyi("s-get-bang")
@@ -389,10 +465,13 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
 
 end
 
-fun compile-program(prog, env, provides, options) block:
+fun compile-program(prog, env, datatypes, provides, options) block:
   {ans; stmts} = compile-expr({
     uri: provides.from-uri,
     options: options,
+    provides: provides,
+    datatypes: datatypes,
+    env: env
   }, prog.block)
 
   globals = D.make-mutable-string-dict()

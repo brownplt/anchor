@@ -986,6 +986,7 @@ data Expr:
   | s-data-expr(
       l :: Loc,
       name :: String,
+      ann-name :: Name,
       namet :: Name,
       params :: List<Name>, # type params
       mixins :: List<Expr>,
@@ -2160,6 +2161,7 @@ default-map-visitor = {
       self,
       l :: Loc,
       name :: String,
+      ann-name :: Name,
       namet :: Name,
       params :: List<Name>, # type params
       mixins :: List<Expr>,
@@ -2171,6 +2173,7 @@ default-map-visitor = {
     s-data-expr(
         l,
         name,
+        ann-name.visit(self),
         namet.visit(self),
         params.map(_.visit(self)),
         mixins.map(_.visit(self)),
@@ -2718,6 +2721,7 @@ default-iter-visitor = {
       self,
       l :: Loc,
       name :: String,
+      ann-name :: Name,
       namet :: Name,
       params :: List<Name>, # type params
       mixins :: List<Expr>,
@@ -2726,7 +2730,8 @@ default-iter-visitor = {
       _check-loc :: Option<Loc>,
       _check :: Option<Expr>
       ):
-    namet.visit(self)
+    ann-name.visit(self)
+    and namet.visit(self)
     and lists.all(_.visit(self), params)
     and lists.all(_.visit(self), mixins)
     and lists.all(_.visit(self), variants)
@@ -3263,7 +3268,8 @@ dummy-loc-visitor = {
       self,
       l :: Loc,
       name :: String,
-      namet :: String,
+      ann-name :: Name,
+      namet :: Name,
       params :: List<Name>, # type params
       mixins :: List<Expr>,
       variants :: List<Variant>,
@@ -3274,6 +3280,7 @@ dummy-loc-visitor = {
     s-data-expr(
         dummy-loc,
         name,
+        ann-name.visit(self),
         namet.visit(self),
         params.map(_.visit(self)),
         mixins.map(_.visit(self)),
