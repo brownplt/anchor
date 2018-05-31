@@ -114,7 +114,7 @@ fun make-builtin-arr-locator(basedir, builtin-name):
       ast
     end,
     method get-dependencies(self):
-      CL.get-dependencies(self.get-module(), self.uri())
+      CL.get-minimal-dependencies(self.get-module(), self.uri())
     end,
     method get-native-modules(self):
       [list:]
@@ -183,7 +183,9 @@ fun maybe-make-builtin-locator(builtin-name :: String) -> Option<CL.Locator> blo
       none
     end
   end.filter(is-some).map(_.value)
-  matching-js-files = for map(p from builtin-js-dirs):
+  matching-js-files = for map(p from builtin-js-dirs) block:
+    print("Path: " + p)
+    print("\n")
     full-path = P.join(p, builtin-name + ".js")
     if F.file-exists(full-path):
       some(full-path)

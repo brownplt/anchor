@@ -181,10 +181,10 @@ fun get-file-locator(basedir, real-path):
   get-cached-if-available(basedir, loc)
 end
 
-fun get-builtin-locator(basedir, read-only-basedirs, modname):
+fun get-builtin-locator(basedir, read-only-basedirs, modname) block:
   all-dirs = link(basedir, read-only-basedirs)
 
-  first-available = for find(rob from all-dirs):
+  first-available = for find(rob from all-dirs) block:
     is-some(cached-available(rob, "builtin://" + modname, modname, 0))
   end
   cases(Option) first-available:

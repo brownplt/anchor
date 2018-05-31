@@ -38,7 +38,7 @@ fun mockable-file-locator(file-ops):
         ast
       end,
       method get-dependencies(self):
-        CL.get-dependencies(self.get-module(), self.uri())
+        CL.get-minimal-dependencies(self.get-module(), self.uri())
       end,
       method get-native-modules(self):
         [list:]

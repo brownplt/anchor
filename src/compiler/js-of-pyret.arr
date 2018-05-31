@@ -73,6 +73,9 @@ data CompiledCodePrinter:
     method pyret-to-js-runnable(self) -> String block:
       F.file-to-string(self.path)
     end,
+    method print-js-module(self, printer):
+      self.print-js-runnable(printer)
+    end,
     method print-js-runnable(self, printer):
       printer(self.pyret-to-js-runnable())
     end

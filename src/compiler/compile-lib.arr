@@ -198,6 +198,12 @@ fun get-dependencies(p :: PyretCode, uri :: URI) -> List<CS.Dependency>:
   end
 end
 
+fun get-minimal-dependencies(p :: PyretCode, uri :: URI) -> List<CS.Dependency>:
+  mod-deps = get-dependencies(p, uri)
+  mod-deps + CS.minimal-imports.imports.map(_.dependency)
+end
+
+
 fun get-standard-dependencies(p :: PyretCode, uri :: URI) -> List<CS.Dependency>:
   mod-deps = get-dependencies(p, uri)
   mod-deps + CS.standard-imports.imports.map(_.dependency)
@@ -416,7 +422,7 @@ fun compile-module(locator :: Locator, provide-map :: SD.StringDict<CS.Provides>
             add-phase("Fully desugared", desugared)
             var type-checked =
               if options.type-check:
-                type-checked = T.type-check(desugared)
+                type-checked = T.type-check(desugared, env, modules)
                 if CS.is-ok(type-checked) block:
                   provides := AU.get-typed-provides(type-checked.code, locator.uri(), env)
                   CS.ok(type-checked.code.ast)

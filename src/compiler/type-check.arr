@@ -462,8 +462,16 @@ fun _checking(e :: Expr, expect-type :: Type, top-level :: Boolean, context :: C
           checking-cases(l, typ, val, branches, none, expect-type, context)
         | s-cases-else(l, typ, val, branches, _else, b) =>
           checking-cases(l, typ, val, branches, some(_else), expect-type, context)
-        | s-op(loc, op, l, r) =>
-          raise("checking for s-op not implemented")
+        | s-op(loc, opl, op, l, r) =>
+          fun check-app(gid):
+            checking(A.s-app(l, A.s-id(loc, A.s-global(gid)), [list: l, r]), expect-type, top-level, context)
+          end
+          ask:
+            | op == "op+" then: check-app("_plus")
+            | op == "op-" then: check-app("_minus")
+            | op == "op==" then: check-app("equal-always")
+            | otherwise: raise("checking for s-op not implemented: " + op)
+          end
         | s-check-test(loc, op, refinement, l, r) =>
           if is-some(test-inference-data):
             collect-example(e, context).typing-bind(lam(_, shadow context):
@@ -583,7 +591,7 @@ fun _checking(e :: Expr, expect-type :: Type, top-level :: Boolean, context :: C
           raise("checking for s-bracket not implemented")
         | s-data(l, name, params, mixins, variants, shared-members, _check-loc, _check) =>
           raise("s-data should have already been desugared")
-        | s-data-expr(l, name, namet, params, mixins, variants, shared-members, _check-loc, _check) =>
+        | s-data-expr(l, name, ann-name, namet, params, mixins, variants, shared-members, _check-loc, _check) =>
           raise("s-data-expr should have been handled by s-letrec")
         | s-for(l, iterator, bindings, ann, body) =>
           raise("s-for should have already been desugared")
@@ -856,7 +864,7 @@ fun _synthesis(e :: Expr, top-level :: Boolean, context :: Context) -> TypingRes
       raise("synthesis for s-bracket not implemented")
     | s-data(l, name, params, mixins, variants, shared-members, _check-loc, _check) =>
       raise("s-data should have already been desugared")
-    | s-data-expr(l, name, namet, params, mixins, variants, shared-members, _check-loc, _check) =>
+    | s-data-expr(l, name, ann-name, namet, params, mixins, variants, shared-members, _check-loc, _check) =>
       raise("s-data-expr should have been handled by s-letrec")
     | s-for(l, iterator, bindings, ann, body, blocky) =>
       raise("s-for should have already been desugared")
@@ -928,11 +936,17 @@ fun check-synthesis(e :: Expr, expect-type :: Type, top-level :: Boolean, contex
 end
 
 fun lookup-id(blame-loc :: A.Loc, id-key :: String, id-expr :: Expr, context :: Context) -> FoldResult<Type>:
-  if context.binds.has-key(id-key):
+  if context.binds.has-key(id-key) block:
     fold-result(context.binds.get-value(id-key).set-loc(blame-loc), context)
   else if context.global-types.has-key(id-key):
     fold-result(context.global-types.get-value(id-key).set-loc(blame-loc), context)
   else:
+    print-error("\n")
+    print-error(context.global-types)
+    print-error("\n")
+    print-error(context.binds)
+    print-error("\n")
+    raise(id-key + " not found in:\n" + to-repr(context.global-types) + "\n" + to-repr(context.global-types.keys()))
     fold-errors([list: C.unbound-id(id-expr)])
   end
 end
@@ -946,7 +960,7 @@ fun handle-datatype(data-type-bind :: A.LetrecBind, bindings :: List<A.LetrecBin
 context :: Context) -> FoldResult<List<A.LetrecBind>>:
   data-expr = data-type-bind.value
   cases(Expr) data-expr:
-    | s-data-expr(l, name, namet, params, mixins, variants, fields, _check-loc, _check) =>
+    | s-data-expr(l, name, ann-name, namet, params, mixins, variants, fields, _check-loc, _check) =>
       shadow context = context.add-level()
       brander-type = t-name(local, namet, l, false)
       t-vars = params.map(t-var(_, l, false))
@@ -1657,7 +1671,7 @@ fun collect-letrec-bindings(binds :: List<A.LetrecBind>, top-level :: Boolean, c
       | link(first-bind, rest-binds) =>
         first-value = first-bind.value
         cases(Expr) first-value:
-          | s-data-expr(_, _, _, _, _, variants, _, _, _) =>
+          | s-data-expr(_, _, _, _, _, _, variants, _, _, _) =>
             num-data-binds = (2 * variants.length()) + 1
             split-list = split-at(num-data-binds, rest-binds)
             data-binds = split-list.prefix

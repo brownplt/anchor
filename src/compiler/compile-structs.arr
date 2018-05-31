@@ -2472,7 +2472,7 @@ default-compile-options = {
   check-mode : true,
   check-all : true,
   checks: "all",
-  type-check : false,
+  type-check : true,
   allow-shadowed : false,
   collect-all: false,
   collect-times: false,
@@ -2540,6 +2540,7 @@ runtime-provides = provides("builtin://global",
     "to-string", t-arrow([list: t-top], t-str),
     "torepr", t-arrow([list: t-top], t-str),
     "to-repr", t-arrow([list: t-top], t-str),
+    "trace-value", t-arrow([list: t-top, t-top], t-bot),
     "brander", t-top,
     "raise", t-arrow([list: t-top], t-bot),
     "nothing", t-nothing,
@@ -2725,10 +2726,13 @@ no-builtins = compile-env(globals([string-dict: ], [string-dict: ]), [string-dic
 
 minimal-builtins = compile-env(globals(runtime-builtins, runtime-types), [string-dict: "builtin(global)", runtime-provides])
 
-standard-globals = globals([string-dict:], [string-dict:])
+standard-globals = globals(runtime-builtins, runtime-types)
 standard-builtins = compile-env(globals(runtime-builtins, runtime-types), [string-dict: "builtin(global)", runtime-provides])
 
-minimal-imports = extra-imports(empty)
+minimal-imports = extra-imports(
+   [list:
+      extra-import(builtin("global"), "$global", [list:], [list:])]
+)
 
 standard-imports = extra-imports(
    [list:
