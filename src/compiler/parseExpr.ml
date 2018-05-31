@@ -1,7 +1,12 @@
-open Printf
 open Ast
 open ExprToOcaml
 open OcamlToJS
+
+type buffer
+
+external readFileSync : string -> buffer = "readFileSync" [@@bs.module "fs"]
+external js_String : buffer -> string = "String" [@@bs.val]
+external trace : unit -> unit = "console.trace" [@@bs.val]
 
 (* Abstract type representing the result of parsing *)
 type parsed
@@ -68,7 +73,11 @@ let rec expr_to_ast (sast : surfaceAst) : expr =
           let rhs = expr_to_ast (sast##kids).(2) in
           EBinop(Plus, lhs, rhs)
         | _ -> ENum("9999")))
-  | _ -> failwith ("unmatched node name: " ^ sast##name)
+  | _ ->
+    begin
+      Js.log sast;
+      failwith ("unmatched node name: " ^ sast##name)
+    end
 
 and parse_args args =
   let actual_args = ((args##kids).(1)##kids).(0)##kids in
@@ -76,9 +85,78 @@ and parse_args args =
 
 and header_to_ast header =
   let args = Array.to_list (header##kids).(1)##kids in
+  let ret = ann_to_ast (header##kids).(2) in
   let bindings = List.filter (fun x -> x##name = "binding") args in
-  let names = List.map (fun x -> (((x##kids).(0)##kids).(0)##value, "anything")) bindings in
-  (names, "ignored")
+  let names = List.map (fun x -> (((x##kids).(0)##kids).(0)##value, AName("ignored"))) bindings in
+  (names, ret)
+
+and params_to_ast (params : surfaceAst) =
+  let comma_names_part = ((params##kids).(1))##kids in
+  let rec pluck_names lst =
+    match lst with
+      | [] -> failwith "Ill-formed params"
+      | [n] -> [n##value]
+      | n::_::rest -> (n##value) :: (pluck_names rest) in
+  pluck_names (Array.to_list comma_names_part)
+
+and ann_to_ast (a : surfaceAst) =
+  begin
+    Js.log a;
+    (* NOTE(joe): this is wrong recursive structure; should happen outside *)
+    let ann_first_part = (a##kids).(0) in
+    match ann_first_part##name with
+      | "name-ann" -> AName(((a##kids).(0)##kids).(0)##value)
+      | "app-ann" ->
+        begin
+          let args = List.filter (fun a -> a##name != "COMMA") (Array.to_list ((ann_first_part##kids).(2))##kids) in
+          AApp(ann_to_ast ann_first_part, List.map ann_to_ast args)
+        end
+      | _ ->
+        begin
+          trace ();
+          failwith ("Annotation type not supported yet: " ^ (ann_first_part##name))
+        end
+  end
+
+and bind_to_ast (b : surfaceAst) =
+  begin
+    let b = (b##kids).(0) in
+    ((b##kids).(0)##value, ann_to_ast (b##kids).(2))
+  end
+
+and member_to_ast (m : surfaceAst) =
+  begin
+    bind_to_ast (m##kids).(0)
+  end
+
+and members_to_ast (sasts : surfaceAst array) =
+  let member_parts = Array.to_list sasts in
+  let member_parts = List.filter (fun x -> x##name = "variant-member") member_parts in
+  begin
+  Js.log member_parts;
+  List.map member_to_ast member_parts
+  end
+
+and variant_to_ast (sast : surfaceAst) =
+  let is_constructor = (sast##kids).(1)##name = "variant-constructor" in
+  begin if is_constructor then
+    let vc = (sast##kids).(1) in
+    let name = (vc##kids).(0)##value in
+    let members = members_to_ast ((vc##kids).(1)##kids) in
+    VConstructor(name, members)
+  else
+    VSingleton((sast##kids).(1)##value)
+  end
+
+and variants_to_ast (sasts : surfaceAst array) =
+  let rec get_variants_starting_at i =
+    let v = sasts.(i) in
+    begin if v##name = "data-variant" then
+      (variant_to_ast v)::(get_variants_starting_at (i + 1))
+    else
+      []
+    end in
+  get_variants_starting_at 4
   
 and stmt_to_ast (sast : surfaceAst) : stmt =
   match sast##name with
@@ -92,8 +170,13 @@ and stmt_to_ast (sast : surfaceAst) : stmt =
           args,
           ret,
           expr_to_ast (kid##kids).(5))
+      | "data-expr" ->
+        let name = (kid##kids).(1)##value in
+        let params = params_to_ast (kid##kids).(2) in
+        let variants = variants_to_ast kid##kids in
+        SData(name, params, variants, [], EStr("skipping checks"))
       | _ -> SExpr(expr_to_ast kid))
-  | _ -> failwith ("Unknown stmt " ^ sast##name)
+  | _ -> failwith ("Unknown stmt " ^ (sast##name))
 
 let prog_to_ast (sast : surfaceAst) : program =
   match sast##name with
@@ -103,6 +186,7 @@ let prog_to_ast (sast : surfaceAst) : program =
 
 let compile (data: string) (filename: string) : string =
   let parsed = parse data filename in
+  let _ = Js.log (Js.Json.stringifyAny parsed) in
   match parsed with
     | Some(sast) ->
       let ast = prog_to_ast sast in
@@ -113,6 +197,10 @@ let compile (data: string) (filename: string) : string =
     | None ->
       failwith "Parse error"
 
-
-let () = Js.log (compile "fun f(x): x + 1 end\nf(4)" "")
+let () =
+  let prog_string =  (js_String (readFileSync Sys.argv.(2))) in
+  begin
+    Js.log prog_string;
+    Js.log (compile (js_String (readFileSync Sys.argv.(2))) Sys.argv.(2))
+  end
 
