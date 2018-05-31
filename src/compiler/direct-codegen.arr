@@ -275,7 +275,8 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
       val = ask:
         | op == "op+" then: j-binop(lv, J.j-plus, rv)
         | op == "op-" then: j-binop(lv, J.j-minus, rv)
-        | op == "op==" then: j-binop(lv, J.j-eq, rv)
+        | op == "op==" then: rt-method("py_equal", [list: lv, rv])
+        | op == "op<=>" then: j-binop(lv, J.j-eq, rv)
         | otherwise: nyi(op)
       end
       { val; lstmts + rstmts }
@@ -326,7 +327,14 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
       end
 
       variant-uniq-defs = for CL.map_list(v from variants):
-        j-var(js-id-of(variant-uniqs.get-value(v.name)), j-obj([clist:]))
+        names = cases(A.Variant) v:
+          | s-singleton-variant(_, _, _) => j-false
+          | s-variant(_, _, _, members, _) =>
+            j-list(false, for CL.map_list(m from members): j-str(m.bind.id.toname()) end)
+        end
+        j-var(js-id-of(variant-uniqs.get-value(v.name)), j-obj([clist:
+          j-field("names", names)
+        ]))
       end
 
       variant-constructors = for CL.map_list_n(local-tag from 0, v from variants):
@@ -545,8 +553,11 @@ fun compile-program(prog, env, datatypes, provides, options) block:
     global-bind-dict.get-value-now(k)
   end
 
+  require-runtime =
+    J.j-var(const-id("R"), j-expr(j-app(j-id(const-id("require")), [clist: j-str(options.runtime-path + "/runtime.js")])))
+
   # module-body = J.j-block(global-binds + stmts + [clist: j-return(ans)])
-  module-body = J.j-block(stmts + [clist: j-return(ans)])
+  module-body = J.j-block([clist: require-runtime] + stmts + [clist: j-return(ans)])
 
   the-module = module-body
 

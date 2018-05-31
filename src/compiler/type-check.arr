@@ -463,15 +463,7 @@ fun _checking(e :: Expr, expect-type :: Type, top-level :: Boolean, context :: C
         | s-cases-else(l, typ, val, branches, _else, b) =>
           checking-cases(l, typ, val, branches, some(_else), expect-type, context)
         | s-op(loc, opl, op, l, r) =>
-          fun check-app(gid):
-            checking(A.s-app(l, A.s-id(loc, A.s-global(gid)), [list: l, r]), expect-type, top-level, context)
-          end
-          ask:
-            | op == "op+" then: check-app("_plus")
-            | op == "op-" then: check-app("_minus")
-            | op == "op==" then: check-app("equal-always")
-            | otherwise: raise("checking for s-op not implemented: " + op)
-          end
+          check-synthesis(e, expect-type, top-level, context)
         | s-check-test(loc, op, refinement, l, r) =>
           if is-some(test-inference-data):
             collect-example(e, context).typing-bind(lam(_, shadow context):
@@ -733,8 +725,34 @@ fun _synthesis(e :: Expr, top-level :: Boolean, context :: Context) -> TypingRes
       synthesis-cases(l, typ, val, branches, none, context)
     | s-cases-else(l, typ, val, branches, _else, blocky) =>
       synthesis-cases(l, typ, val, branches, some(_else), context)
-    | s-op(loc, op, l, r) =>
-      raise("synthesis for s-op not implemented")
+    | s-op(loc, opl, op, l, r) =>
+      fun choose-type(method-name :: String) -> FoldResult<Type>:
+        obj-exists = new-existential(l.l, false)
+        other-type = new-existential(r.l, false)
+        ret-type = new-existential(loc, false)
+        arrow-type = t-arrow([list: obj-exists, other-type], ret-type, loc, false)
+        shadow context = context.add-variable(obj-exists).add-variable(other-type).add-variable(ret-type).add-field-constraint(obj-exists, method-name, t-arrow([list: other-type], ret-type, loc, false))
+        fold-result(arrow-type, context)
+      end
+      equality-fold-result = fold-result(t-arrow([list: t-top(loc, false), t-top(loc, false)], t-boolean(loc), loc, false), context)
+      fun-result = ask:
+        | op == "op+"   then: choose-type("_plus")
+        | op == "op-"   then: choose-type("_minus")
+        | op == "op*"   then: choose-type("_times")
+        | op == "op/"   then: choose-type("_divide")
+        | op == "op<"   then: choose-type("_lessthan")
+        | op == "op<="  then: choose-type("_lessequal")
+        | op == "op>"   then: choose-type("_greaterthan")
+        | op == "op>="  then: choose-type("_greaterequal")
+        | op == "op=="  then: equality-fold-result
+        | op == "op<=>" then: equality-fold-result
+        | op == "op=~"  then: equality-fold-result
+        | op == "op<>"  then: equality-fold-result
+        | otherwise:          raise("checking for s-op not implemented: " + op)
+      end
+      fun-result.typing-bind(lam(fun-type, shadow context):
+        synthesis-spine(fun-type, lam(args): A.s-op(loc, opl, op, args.get(0), args.get(1)) end, [list: l, r], loc, context)
+      end)
     | s-check-test(loc, op, refinement, l, r) =>
       if is-some(test-inference-data):
         collect-example(e, context).typing-bind(lam(_, shadow context):

@@ -20,6 +20,7 @@
   },
   "homepage": "https://github.com/brownplt/anchor#readme",
   "devDependencies": {
+    "jshint": "^2.9.5",
     "requirejs": "^2.3.5"
   }
 }

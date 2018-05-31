@@ -19,8 +19,8 @@ options = [D.string-dict:
     C.next-val-default(C.String, "compiled", none, C.once, "Directory to save compiled files to; searched first for precompiled modules"),
   "builtin-js-dir",
     C.next-val(C.String, C.many, "Directories to search for runtime files"),
-  "compiled-read-only-dir",
-    C.next-val(C.String, C.many, "Directories to search for precompiled files")
+  "runtime-path",
+    C.next-val(C.String, C.once, "Directory to use as the base for imports of runtime files")
 ]
 
 params-parsed = C.parse-args(options, C.args)
@@ -45,6 +45,7 @@ cases(C.ParsedArguments) params-parsed block:
         ignore-unbound: false,
         proper-tail-calls: true,
         compiled-cache: compiled-dir,
+        runtime-path: r.get("runtime-path").or-else(CS.default-compile-options.runtime-path),
         compiled-read-only: r.get("compiled-read-only-dir").or-else([list: P.join(this-pyret-dir, "../src/runtime/")]),
         display-progress: true,
         inline-case-body-limit: DEFAULT-INLINE-CASE-LIMIT,
