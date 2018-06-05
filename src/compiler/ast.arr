@@ -2,10 +2,11 @@
 
 provide *
 provide-types *
-import pprint as PP
 import srcloc as S
 import contracts as C
 import valueskeleton as VS
+
+import file("pprint.arr") as PP
 
 type Loc = S.Srcloc
 

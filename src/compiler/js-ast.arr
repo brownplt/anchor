@@ -2,11 +2,11 @@
 
 provide *
 provide-types *
-import pprint as PP
 import format as F
 import js-file("source-map-lib") as SM
 import file("ast.arr") as A
 import file("concat-lists.arr") as CL
+import file("pprint.arr") as PP
 
 type CList = CL.ConcatList
 clist = CL.clist

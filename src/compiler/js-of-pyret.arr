@@ -3,13 +3,13 @@ provide-types *
 
 import file as F
 import string-dict as SD
-import pprint as PP
 
 import file("ast-util.arr") as AU
 import file("compile-structs.arr") as C
 import file("concat-lists.arr") as CL
 import file("js-ast.arr") as J
 import file("direct-codegen.arr") as D
+import file("pprint.arr") as PP
 
 cl-empty = CL.concat-empty
 cl-cons = CL.concat-cons
