@@ -29,3 +29,4 @@ lib/js
 .bsb.lock
 *.swp
 .pyret
+tests/compiled
