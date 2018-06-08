@@ -237,6 +237,15 @@ fun maybe-mkdir(path):
   when not(FS.exists(path)): FS.create-dir(path) end
 end
 
+fun mkdirp(path) block:
+  components = string-split-all(path, P.path-sep)
+  for fold(p from "/", c from components) block:
+    new-p = P.join(p, c)
+    maybe-mkdir(new-p)
+    new-p
+  end
+end
+
 fun set-loadable(options, locator, loadable) -> String block:
   doc: "Returns the module path of the cached file"
   project-base = F.real-path(options.base-dir)
@@ -266,6 +275,8 @@ fun set-loadable(options, locator, loadable) -> String block:
           end
 
           relative-to-project = string-substring(full-path, string-length(project-base), string-length(full-path))
+
+          mkdirp(P.dirname(P.join(project-dir, relative-to-project)))
 
           print(full-path)
           print("\n")
