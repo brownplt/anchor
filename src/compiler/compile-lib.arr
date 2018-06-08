@@ -109,6 +109,12 @@ type ModuleResult = Any
 
 type Provides = CS.Provides
 
+data CompileTODO:
+  | already-done(result :: CS.CompileResult)
+  | arr-js-file(provides, header-file :: String, code-file :: String)
+  | arr-file(mod, libs, options)
+end
+
 type Locator = {
 
   # In milliseconds-since-epoch format
@@ -144,7 +150,7 @@ type Locator = {
   set-compiled :: (Loadable, SD.StringDict<Provides> -> Nothing),
 
   # Pre-compile if needs-compile is false
-  get-compiled :: ( -> Option<CS.CompileResult>),
+  get-compiled :: (-> CompileTODO),
 
   # _equals should compare uris for locators
   _equals :: Method
@@ -161,7 +167,7 @@ fun string-locator(uri :: URI, s :: String):
     method get-native-modules(self): [list:] end,
     method get-dependencies(self): get-standard-dependencies(pyret-string(s), uri) end,
     method get-extra-imports(self): CS.standard-imports end,
-    method get-globals(self): CS.standard-globals end,
+    method get-globals(self): CS.minimal-globals end,
     method uri(self): uri end,
     method name(self): uri end,
     method set-compiled(self, _, _): nothing end,
@@ -340,18 +346,19 @@ fun compile-module(locator :: Locator, provide-map :: SD.StringDict<CS.Provides>
   A.global-names.reset()
   #print("Compiling module: " + locator.uri() + "\n")
   env = CS.compile-env(locator.get-globals(), provide-map)
-  cases(Option<Loadable>) locator.get-compiled() block:
-    | some(loadable) =>
+  cases(CompileTODO) locator.get-compiled(options) block:
+    | already-done(loadable) =>
       #print("Module is already compiled\n")
       cases(Loadable) loadable:
         | module-as-string(pvds, ce-unused, m) =>
           {module-as-string(AU.canonicalize-provides(pvds, env), ce-unused, m); empty}
       end
-    | none =>
+    | arr-js-file(provides, header-file, code-file) =>
+
+      {module-as-string(provides, CS.minimal-builtins, CS.ok(JSP.ccp-two-files(header-file, code-file))); empty}
+      
+    | arr-file(mod, libs, shadow options)  =>
       #print("Module is being freshly compiled\n")
-      shadow options = locator.get-options(options)
-      libs = locator.get-extra-imports()
-      mod = locator.get-module()
       var ast = cases(PyretCode) mod:
         | pyret-string(module-string) =>
           P.surface-parse(module-string, locator.uri())

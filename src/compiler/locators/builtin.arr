@@ -47,6 +47,8 @@ end
 
 fun make-builtin-js-locator(basedir, builtin-name):
   raw = B.builtin-raw-locator(P.join(basedir, builtin-name))
+  source-path = P.join(basedir, builtin-name + ".arr.js")
+  header-path = P.join(basedir, builtin-name + ".arr.json")
   {
     method needs-compile(_, _): false end,
     method get-modified-time(self):
@@ -70,22 +72,21 @@ fun make-builtin-js-locator(basedir, builtin-name):
       raw-array-to-list(natives).map(CM.requirejs)
     end,
     method get-globals(_):
-      CM.standard-globals
+      CM.minimal-globals
     end,
 
     method uri(_): "builtin://" + builtin-name end,
     method name(_): builtin-name end,
 
     method set-compiled(_, _, _): nothing end,
-    method get-compiled(self):
+    method get-compiled(self, options):
       provs = convert-provides(self.uri(), {
         uri: self.uri(),
         values: raw-array-to-list(raw.get-raw-value-provides()),
         aliases: raw-array-to-list(raw.get-raw-alias-provides()),
         datatypes: raw-array-to-list(raw.get-raw-datatype-provides())
       })
-      some(CL.module-as-string(provs, CM.minimal-builtins,
-          CM.ok(JSP.ccp-file(P.join(basedir, builtin-name + ".js")))))
+      CL.arr-js-file(provs, header-path, source-path)
     end,
 
     method _equals(self, other, req-eq):
@@ -123,7 +124,7 @@ fun make-builtin-arr-locator(basedir, builtin-name):
       CM.minimal-imports
     end,
     method get-globals(self):
-      CM.standard-globals
+      CM.minimal-globals
     end,
     method set-compiled(self, cr, deps) block:
       ast := nothing
@@ -141,7 +142,7 @@ fun make-builtin-arr-locator(basedir, builtin-name):
         true
       end
     end,
-    method get-compiled(self):
+    method get-compiled(self, options):
       cpath = path + ".js"
       if F.file-exists(path) and F.file-exists(cpath):
         # NOTE(joe):
@@ -186,9 +187,13 @@ fun maybe-make-builtin-locator(builtin-name :: String) -> Option<CL.Locator> blo
   matching-js-files = for map(p from builtin-js-dirs) block:
     print("Path: " + p)
     print("\n")
-    full-path = P.join(p, builtin-name + ".js")
-    if F.file-exists(full-path):
-      some(full-path)
+    full-path = P.join(p, builtin-name + ".arr.js")
+    header-path = P.join(p, builtin-name + ".arr.json")
+    print("Searching for: " + full-path + " " + header-path)
+    print("\n")
+    # TODO(joe): look for .header instead
+    if F.file-exists(full-path) and F.file-exists(header-path):
+      some({ full-path; header-path })
     else:
       none
     end
@@ -211,7 +216,7 @@ fun maybe-make-builtin-locator(builtin-name :: String) -> Option<CL.Locator> blo
     | is-link(matching-arr-files) then:
       some(make-builtin-arr-locator(P.dirname(matching-arr-files.first), builtin-name))
     | is-link(matching-js-files) then:
-      some(make-builtin-js-locator(P.dirname(matching-js-files.first), builtin-name))
+      some(make-builtin-js-locator(P.dirname(matching-js-files.first.{0}), builtin-name))
     | otherwise:
       none
   end

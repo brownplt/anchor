@@ -38,34 +38,27 @@ data CompiledCodePrinter:
       self.to-j-expr(self.dict).tosource()
     end,
     method pyret-to-js-runnable(self) -> String:
-      self.to-j-expr(self.dict).to-ugly-source()
+      self.dict.get-value("theModule").to-ugly-source()
     end,
     method print-js-runnable(self, printer):
-      self.to-j-expr(self.dict).print-ugly-source(printer)
+      self.dict.get-value("theModule").print-ugly-source(printer)
     end,
     method print-js-module(self, printer):
       self.dict.get-value("theModule").print-ugly-source(printer)
     end
-  | ccp(compiled :: J.JExpr) with:
-    method pyret-to-js-pretty(self) -> PP.PPrintDoc:
-      self.compiled.tosource()
+  | ccp-two-files(static-path :: String, code-path :: String) with:
+    method pyret-to-js-pretty(self, width) -> String:
+      raise("Cannot generate pretty JS from code string")
     end,
-    method pyret-to-js-runnable(self) -> String:
-      self.compiled.to-ugly-source()
-    end,
-    method print-js-runnable(self, printer):
-      self.compiled.print-ugly-source(printer)
-    end
-  | ccp-string(compiled :: String) with:
-    method pyret-to-js-pretty(self) -> PP.PPrintDoc:
-      PP.str(self.compiled)
-    end,
-    method pyret-to-js-runnable(self) -> String:
-      self.compiled
+    method print-js-static(self, printer):
+      printer(F.file-to-string(self.static-path))
     end,
     method print-js-runnable(self, printer):
-      printer(self.compiled)
-    end
+      printer(F.file-to-string(self.code-path))
+    end,
+    method pyret-to-js-runnable(self) -> String:
+      F.file-to-string(self.code-path)
+    end,
   | ccp-file(path :: String) with:
     method pyret-to-js-pretty(self, width) -> String:
       raise("Cannot generate pretty JS from code string")

@@ -143,22 +143,21 @@ fun get-cached(basedir, uri, name, cache-type):
       raw-array-to-list(natives).map(CS.requirejs)
     end,
     method get-globals(_):
-      CS.standard-globals
+      CS.minimal-globals
     end,
 
     method uri(_): uri end,
     method name(_): name end,
 
     method set-compiled(_, _, _): nothing end,
-    method get-compiled(self):
-      provs = CS.provides-from-raw-provides(self.uri(), {
-          uri: self.uri(),
-          values: raw-array-to-list(raw.get-raw-value-provides()),
-          aliases: raw-array-to-list(raw.get-raw-alias-provides()),
-          datatypes: raw-array-to-list(raw.get-raw-datatype-provides())
-        })
-      some(CL.module-as-string(provs, CS.minimal-builtins,
-          CS.ok(JSP.ccp-file(F.real-path(module-path + ".js")))))
+    method get-compiled(self, _):
+      provs = BL.convert-provides(self.uri(), {
+        uri: self.uri(),
+        values: raw-array-to-list(raw.get-raw-value-provides()),
+        aliases: raw-array-to-list(raw.get-raw-alias-provides()),
+        datatypes: raw-array-to-list(raw.get-raw-datatype-provides())
+      })
+      CL.arr-js-file(provs, F.real-path(module-path + ".arr.json"), F.real-path(module-path + ".arr.js"))
     end,
 
     method _equals(self, other, req-eq):
@@ -168,7 +167,6 @@ fun get-cached(basedir, uri, name, cache-type):
 end
 
 fun get-cached-if-available(basedir, loc) block:
-  saved-path = P.join(basedir, uri-to-path(loc.uri(), loc.name()))
   cached-type = cached-available(basedir, loc.uri(), loc.name(), loc.get-modified-time())
   cases(Option) cached-type:
     | none => loc
@@ -177,7 +175,7 @@ fun get-cached-if-available(basedir, loc) block:
 end
 
 fun get-file-locator(basedir, real-path):
-  loc = FL.file-locator(real-path, CS.standard-globals)
+  loc = FL.file-locator(real-path, CS.minimal-globals)
   get-cached-if-available(basedir, loc)
 end
 
@@ -190,8 +188,7 @@ fun get-builtin-locator(basedir, read-only-basedirs, modname) block:
   cases(Option) first-available:
     | none =>
       cases(Option) BL.maybe-make-builtin-locator(modname) block:
-        | some(loc) =>
-          get-cached-if-available(basedir, loc)
+        | some(loc) => loc
         | none =>
           raise("Could not find builtin module " + modname + " in any of " + all-dirs.join-str(", "))
       end
@@ -236,47 +233,66 @@ fun get-loadable(basedir, read-only-basedirs, l) -> Option<Loadable>:
   end
 end
 
-fun set-loadable(basedir, locator, loadable) -> String block:
+fun maybe-mkdir(path):
+  when not(FS.exists(path)): FS.create-dir(path) end
+end
+
+fun set-loadable(options, locator, loadable) -> String block:
   doc: "Returns the module path of the cached file"
-  when not(FS.exists(basedir)):
-    FS.create-dir(basedir)
-  end
+  project-base = F.real-path(options.base-dir)
+
+  compiled-dir = F.real-path(options.compiled-cache)
+  project-dir = P.join(compiled-dir, "project")
+  builtin-dir = P.join(compiled-dir, "builtin")
+  maybe-mkdir(compiled-dir)
+  maybe-mkdir(project-dir)
+  maybe-mkdir(builtin-dir)
+
   locuri = loadable.provides.from-uri
   cases(CS.CompileResult) loadable.result-printer block:
     | ok(ccp) =>
-      save-static-path = P.join(basedir, uri-to-path(locuri, locator.name()) + "-static.js")
-      save-module-path = P.join(basedir, uri-to-path(locuri, locator.name()) + "-module.js")
-      run-module-path = P.join(basedir, uri-to-path(locuri, locator.name()) + "-run.js")
-      fs = F.output-file(save-static-path, false)
-      fm = F.output-file(save-module-path, false)
-      fr = F.output-file(run-module-path, false)
 
-      ccp.print-js-runnable(fm.display)
-      ccp.print-js-module(fr.display)
+      uri = locator.uri()
 
-      # NOTE(joe August 2017): This is a little bit dumb. When caching a file,
-      # if we have enough information, split it into -static and -module
-      # pieces.  If we don't have a dictionary of this information, save two
-      # copies of it. We simply don't have enough metadata floating around to
-      # make good decisions at fetch time. The copying is fairly innocuous,
-      # because it only happens for hand-written JS files, which are smaller.
-      # But this is a point to revisit.
+      {save-path; static-ext; code-ext} = ask block:
+        | string-index-of(uri, "builtin://") == 0 then: {P.join(builtin-dir, locator.name()); ".arr.json"; ".js"}
+        | (string-index-of(uri, "jsfile://") == 0) or (string-index-of(uri, "file://") == 0) then:
+          cutoff = if (string-index-of(uri, "jsfile://") == 0): 9 else: 7 end
 
-      if JSP.is-ccp-dict(ccp):
-        ccp.print-js-static(fs.display)
-      else:
-        ccp.print-js-runnable(fs.display)
+          full-path = string-substring(uri, cutoff, string-length(uri))
+
+          when string-index-of(full-path, project-base) <> 0:
+            raise("An included file was at " + full-path + " which is outside the current project: " + project-base)
+          end
+
+          relative-to-project = string-substring(full-path, string-length(project-base), string-length(full-path))
+
+          print(full-path)
+          print("\n")
+          print(relative-to-project)
+          print("\n")
+
+
+          {P.join(project-dir, relative-to-project); ".json"; ".js"}
       end
+
+      save-static-path = save-path + static-ext
+      save-code-path = save-path + code-ext
+
+      fs = F.output-file(save-static-path, false)
+      fr = F.output-file(save-code-path, false)
+
+      ccp.print-js-static(fs.display)
+      ccp.print-js-runnable(fr.display)
 
       fs.flush()
       fs.close-file()
-      fm.flush()
-      fm.close-file()
       fr.flush()
       fr.close-file()
 
-      save-module-path
-    | err(_) => ""
+      {save-static-path; save-code-path}
+
+    | err(_) => {""; ""}
   end
 end
 
@@ -331,7 +347,7 @@ fun module-finder(ctxt :: CLIContext, dep :: CS.Dependency):
         real-path = P.join(clp, this-path)
         new-context = ctxt.{current-load-path: P.dirname(real-path)}
         if F.file-exists(real-path):
-          CL.located(FL.file-locator(real-path, CS.standard-globals), new-context)
+          CL.located(FL.file-locator(real-path, CS.minimal-globals), new-context)
         else:
           raise("Cannot find import " + torepr(dep))
         end
@@ -425,7 +441,7 @@ fun build-program(path, options, stats) block:
       clear-and-print("Compiling " + num-to-string(num-compiled) + "/" + num-to-string(total-modules)
           + ": " + locator.name())
     end,
-    method on-compile(_, locator, loadable, trace) block:
+    method on-compile(self, locator, loadable, trace) block:
       locator.set-compiled(loadable, SD.make-mutable-string-dict()) # TODO(joe): What are these supposed to be?
       clear-and-print(num-to-string(num-compiled) + "/" + num-to-string(total-modules)
           + " modules compiled " + "(" + locator.name() + ")")
@@ -438,7 +454,7 @@ fun build-program(path, options, stats) block:
       when num-compiled == total-modules:
         print-progress("\nCleaning up and generating standalone...\n")
       end
-      module-path = set-loadable(options.compiled-cache, locator, loadable)
+      {static-path; code-path} = set-loadable(self, locator, loadable)
       if (num-compiled == total-modules) and options.collect-all:
         # Don't squash the final JS-AST if we're collecting all of them, so
         # it can be pretty-printed after all
@@ -446,7 +462,7 @@ fun build-program(path, options, stats) block:
       else:
         cases(CL.Loadable) loadable:
           | module-as-string(prov, env, rp) =>
-            CL.module-as-string(prov, env, CS.ok(JSP.ccp-file(module-path)))
+            CL.module-as-string(prov, env, CS.ok(JSP.ccp-two-files(static-path, code-path)))
           | else => loadable
         end
       end

@@ -746,6 +746,8 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
 
   fun scope-env-from-env(initial :: C.CompileEnvironment) block:
     acc = SD.make-mutable-string-dict()
+    print("Initial globals: " + to-repr(initial.globals.values))
+    print("\n")
     for SD.each-key(name from initial.globals.values):
       mod-info = initial.mods.get-value(initial.globals.values.get-value(name))
       val-info = mod-info.values.get(name)

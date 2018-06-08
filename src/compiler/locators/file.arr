@@ -54,8 +54,8 @@ fun mockable-file-locator(file-ops):
       method needs-compile(self, provides):
         true
       end,
-      method get-compiled(self):
-        none
+      method get-compiled(self, options):
+        CL.arr-file(self.get-module(), self.get-extra-imports(), self.get-options(options))
       end,
       method uri(self): "file://" + string-replace(file-ops.real-path(self.path), P.path-sep, "/") end,
       method name(self): P.basename(self.path, "") end,

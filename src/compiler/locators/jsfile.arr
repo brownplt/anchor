@@ -40,21 +40,21 @@ fun make-jsfile-locator(path):
       raw-array-to-list(natives).map(CM.requirejs)
     end,
     method get-globals(_):
-      CM.standard-globals
+      CM.minimal-globals
     end,
 
-    method uri(_): "jsfile://" + string-replace(F.real-path(path + ".js"), P.path-sep, "/") end,
+    method uri(_): "jsfile://" + string-replace(F.real-path(path + ".arr.js"), P.path-sep, "/") end,
     method name(_): P.basename(path, "") end,
 
     method set-compiled(_, _, _): nothing end,
-    method get-compiled(self):
+    method get-compiled(self, options):
       provs = convert-provides(self.uri(), {
         uri: self.uri(),
         values: raw-array-to-list(raw.get-raw-value-provides()),
         aliases: raw-array-to-list(raw.get-raw-alias-provides()),
         datatypes: raw-array-to-list(raw.get-raw-datatype-provides())
       })
-      some(CL.module-as-string(provs, CM.minimal-builtins, CM.ok(JSP.ccp-file(F.real-path(path + ".js")))))
+      CL.arr-js-file(provs, F.real-path(path + ".arr.json"), F.real-path(path + "arr.js"))
     end,
 
     method _equals(self, other, req-eq):
