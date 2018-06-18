@@ -20,7 +20,7 @@ fun make-jsfile-locator(path):
   {
     method needs-compile(_, _): false end,
     method get-modified-time(self):
-      F.file-times(path + ".js").mtime
+      F.file-times(path + ".arr.js").mtime
     end,
     method get-options(self, options):
       options.{ check-mode: false }
@@ -54,7 +54,7 @@ fun make-jsfile-locator(path):
         aliases: raw-array-to-list(raw.get-raw-alias-provides()),
         datatypes: raw-array-to-list(raw.get-raw-datatype-provides())
       })
-      CL.arr-js-file(provs, F.real-path(path + ".arr.json"), F.real-path(path + "arr.js"))
+      CL.arr-js-file(provs, F.real-path(path + ".arr.json"), F.real-path(path + ".arr.js"))
     end,
 
     method _equals(self, other, req-eq):
