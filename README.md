@@ -14,6 +14,7 @@ This should make the `pyret` command available on your system, after which you
 can run setup in this repository:
 
 ```
+$ npm install
 $ ./bin/build-parser
 $ make
 ```
