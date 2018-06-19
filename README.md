@@ -19,4 +19,12 @@ $ ./bin/build-parser
 $ make
 ```
 
-Which will build `build/pyret.jarr`
+Which will build `build/pyret.jarr`. Then you can run:
+
+```
+$ node build/pyret.jarr --builtin-js-dir src/runtime/ <path-to-arr-file>
+```
+
+To generate code. The generated code will appear as a subdirectory of
+compiled/project. You can run the .arr.js file that's created directly with
+`node`.
