@@ -185,12 +185,8 @@ fun maybe-make-builtin-locator(builtin-name :: String) -> Option<CL.Locator> blo
     end
   end.filter(is-some).map(_.value)
   matching-js-files = for map(p from builtin-js-dirs) block:
-    print("Path: " + p)
-    print("\n")
     full-path = P.join(p, builtin-name + ".arr.js")
     header-path = P.join(p, builtin-name + ".arr.json")
-    print("Searching for: " + full-path + " " + header-path)
-    print("\n")
     # TODO(joe): look for .header instead
     if F.file-exists(full-path) and F.file-exists(header-path):
       some({ full-path; header-path })

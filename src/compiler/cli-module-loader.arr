@@ -10,6 +10,7 @@ import file as F
 import filelib as FS
 import error as ERR
 import system as SYS
+import js-file("dependency-tree") as DT
 import js-file("builtin-modules") as B
 import file("ast.arr") as A
 import file("js-ast.arr") as J
