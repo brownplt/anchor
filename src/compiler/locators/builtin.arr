@@ -52,7 +52,7 @@ fun make-builtin-js-locator(basedir, builtin-name):
   {
     method needs-compile(_, _): false end,
     method get-modified-time(self):
-      F.file-times(P.join(basedir, builtin-name + ".js")).mtime
+      F.file-times(P.join(basedir, builtin-name + ".arr.js")).mtime
     end,
     method get-options(self, options):
       options.{ check-mode: false, type-check: false }
@@ -133,7 +133,7 @@ fun make-builtin-arr-locator(basedir, builtin-name):
     method needs-compile(self, provides):
       # does not handle provides from dependencies currently
       # NOTE(joe): Until we serialize provides correctly, just return false here
-      cpath = path + ".js"
+      cpath = path + ".arr.js"
       if F.file-exists(path) and F.file-exists(cpath):
         stimes = F.file-times(path)
         ctimes = F.file-times(cpath)
@@ -143,7 +143,7 @@ fun make-builtin-arr-locator(basedir, builtin-name):
       end
     end,
     method get-compiled(self, options):
-      cpath = path + ".js"
+      cpath = path + ".arr.js"
       if F.file-exists(path) and F.file-exists(cpath):
         # NOTE(joe):
         # Since we're not explicitly acquiring locks on files, there is a race
