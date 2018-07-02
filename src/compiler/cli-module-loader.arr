@@ -415,16 +415,6 @@ fun handle-compilation-errors(problems, options) block:
   raise("There were compilation errors")
 end
 
-fun get-js-filename( path ):
-  slash-location = string-index-of( path, "/" )
-  if (slash-location <> (-1)):
-    new-path = string-substring( path, slash-location + 1, string-length( path ))
-    get-js-filename( new-path )
-  else:
-    path
-  end
-end
-
 fun copy-js-dependency(dep-path, uri, dirs) block:
   { project-base; compiled-dir; project-dir; builtin-dir } = dirs
   save-path = ask block:
@@ -433,10 +423,13 @@ fun copy-js-dependency(dep-path, uri, dirs) block:
     | (string-index-of(uri, "jsfile://") == 0) or (string-index-of(uri, "file://") == 0) then:
         project-dir
   end
+  
   cutoff = string-substring(dep-path, string-length(project-base), string-length(dep-path))
-  filename = get-js-filename(cutoff)
 
-  save-code-path = P.join(save-path, filename)
+  save-code-path = P.join(save-path, cutoff)
+  mkdirp(P.dirname(save-code-path))
+
+
   fc = F.output-file( save-code-path, false )
 
   file-content = F.file-to-string( dep-path )
@@ -445,7 +438,7 @@ fun copy-js-dependency(dep-path, uri, dirs) block:
   fc.flush()
   fc.close-file()
 
-  {save-path; filename}
+  save-code-path
 end
 
 fun copy-js-dependencies( wl, options ) block:
