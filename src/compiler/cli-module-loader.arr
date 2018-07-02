@@ -247,18 +247,24 @@ fun mkdirp(path) block:
   end
 end
 
-fun set-loadable(options, locator, loadable) -> String block:
-  doc: "Returns the module path of the cached file"
+fun setup-compiled-dirs( options ) block:
   project-base = F.real-path(options.base-dir)
-
   compiled-dir = F.real-path(options.compiled-cache)
   project-dir = P.join(compiled-dir, "project")
   builtin-dir = P.join(compiled-dir, "builtin")
+
   maybe-mkdir(compiled-dir)
   maybe-mkdir(project-dir)
   maybe-mkdir(builtin-dir)
+  
+  {project-base;compiled-dir;project-dir;builtin-dir} 
+end
 
+fun set-loadable(options, locator, loadable) -> String block:
+  doc: "Returns the module path of the cached file"
+  { project-base; compiled-dir; project-dir; builtin-dir } = setup-compiled-dirs( options )
   locuri = loadable.provides.from-uri
+
   cases(CS.CompileResult) loadable.result-printer block:
     | ok(ccp) =>
 
@@ -283,7 +289,6 @@ fun set-loadable(options, locator, loadable) -> String block:
           print("\n")
           print(relative-to-project)
           print("\n")
-
 
           {P.join(project-dir, relative-to-project); ".json"; ".js"}
       end
@@ -410,6 +415,61 @@ fun handle-compilation-errors(problems, options) block:
   raise("There were compilation errors")
 end
 
+fun get-js-filename( path ):
+  slash-location = string-index-of( path, "/" )
+  if (slash-location <> (-1)):
+    new-path = string-substring( path, slash-location + 1, string-length( path ))
+    get-js-filename( new-path )
+  else:
+    path
+  end
+end
+
+fun copy-js-dependency(dep-path, uri, dirs) block:
+  { project-base; compiled-dir; project-dir; builtin-dir } = dirs
+  save-path = ask block:
+    | string-index-of(uri, "builtin://") == 0 then:
+        builtin-dir
+    | (string-index-of(uri, "jsfile://") == 0) or (string-index-of(uri, "file://") == 0) then:
+        project-dir
+  end
+  cutoff = string-substring(dep-path, string-length(project-base), string-length(dep-path))
+  filename = get-js-filename(cutoff)
+
+  save-code-path = P.join(save-path, filename)
+  fc = F.output-file( save-code-path, false )
+
+  file-content = F.file-to-string( dep-path )
+  fc.display( file-content )
+  
+  fc.flush()
+  fc.close-file()
+
+  {save-path; filename}
+end
+
+fun copy-js-dependencies( wl, options ) block:
+  dirs = setup-compiled-dirs( options )
+  arr-js-modules = for filter( tc from wl ):
+    CL.is-arr-js-file( tc.locator.get-compiled( options ) )
+  end
+
+  paths = SD.make-mutable-string-dict()
+  for each( tc from arr-js-modules ):
+    code-path = tc.locator.get-compiled( options ).code-file
+    deps = DT.get-dependencies( code-path )
+    deps-list = raw-array-to-list( deps )
+    
+    for each( dep-path from deps-list ):
+      when F.real-path( code-path ) <> dep-path: paths.set-now( dep-path, tc.locator.uri() ) end
+    end
+  end
+  
+  for each( dep-path from paths.keys-list-now() ):
+    copy-js-dependency( dep-path, paths.get-value-now( dep-path ), dirs)
+  end
+end
+
 fun build-program(path, options, stats) block:
   doc: ```Returns the program as a JavaScript AST of module list and dependency map,
           and its native dependencies as a list of strings```
@@ -434,6 +494,7 @@ fun build-program(path, options, stats) block:
   }, base-module)
   clear-and-print("Compiling worklist...")
   wl = CL.compile-worklist(module-finder, base.locator, base.context)
+  copy-js-dependencies( wl, options )
   clear-and-print("Loading existing compiled modules...")
   storage = get-cli-module-storage(options.compiled-cache, options.compiled-read-only)
   starter-modules = storage.load-modules(wl)

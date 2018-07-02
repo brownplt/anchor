@@ -9,7 +9,7 @@ build/pyret.jarr: src/compiler/*.arr src/compiler/locators/*.arr src/compiler/*.
 	time pyret -c src/compiler/pyret.arr -o build/pyret.jarr \
       --perilous \
       --checks none \
-      --require-config src/compiler/config.json
+      --require-config src/compiler/config.json \
 
 clean:
 	rm -rf build/
