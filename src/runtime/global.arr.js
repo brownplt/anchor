@@ -1,5 +1,5 @@
-var runtime = require('src/runtime/runtime.js')
-var foo     = require('src/runtime/bar/foo.js')
+var runtime = require('./runtime.js')
+var foo     = require('./bar/foo.js')
 
 export function print(v) {
   console.log(runtime);

@@ -6,6 +6,8 @@ checks: src/runtime/runtime.js
 
 build/pyret.jarr: src/compiler/*.arr src/compiler/locators/*.arr src/compiler/*.js src/syntax/*.js src/jglr/*.js
 	mkdir -p build
+	mkdir -p compiled
+	rm -rf compiled
 	time pyret -c src/compiler/pyret.arr -o build/pyret.jarr \
       --perilous \
       --checks none \

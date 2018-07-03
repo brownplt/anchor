@@ -415,20 +415,19 @@ fun handle-compilation-errors(problems, options) block:
   raise("There were compilation errors")
 end
 
-fun copy-js-dependency(dep-path, uri, dirs) block:
+fun copy-js-dependency( dep-path, uri, dirs ) block:
   { project-base; compiled-dir; project-dir; builtin-dir } = dirs
   save-path = ask block:
-    | string-index-of(uri, "builtin://") == 0 then:
+    | string-index-of( uri, "builtin://" ) == 0 then:
         builtin-dir
-    | (string-index-of(uri, "jsfile://") == 0) or (string-index-of(uri, "file://") == 0) then:
+    | (string-index-of( uri, "jsfile://" ) == 0) or ( string-index-of( uri, "file://" ) == 0 ) then:
         project-dir
   end
   
-  cutoff = string-substring(dep-path, string-length(project-base), string-length(dep-path))
+  cutoff = string-substring( dep-path, string-length( project-base ), string-length( dep-path ) )
 
-  save-code-path = P.join(save-path, cutoff)
-  mkdirp(P.dirname(save-code-path))
-
+  save-code-path = P.join( save-path, cutoff )
+  mkdirp( P.dirname( save-code-path ) )
 
   fc = F.output-file( save-code-path, false )
 
@@ -459,7 +458,7 @@ fun copy-js-dependencies( wl, options ) block:
   end
   
   for each( dep-path from paths.keys-list-now() ):
-    copy-js-dependency( dep-path, paths.get-value-now( dep-path ), dirs)
+    copy-js-dependency( dep-path, paths.get-value-now( dep-path ), dirs )
   end
 end
 

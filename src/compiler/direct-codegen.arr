@@ -553,8 +553,48 @@ fun compile-program(prog, env, datatypes, provides, options) block:
     global-bind-dict.get-value-now(k)
   end
 
+  fun get-base-dir( source-dir, build-dir ):
+    source-head = ask:
+      | string-index-of( source-dir, "file://" ) == 0 then: 7
+      | string-index-of( source-dir, "jsfile://" ) == 0 then: 9
+    end
+
+    fun find-cutoff( dir-A, dir-B, index-A, index-B, length ):
+      if ( string-char-at( dir-A, index-A ) == string-char-at( dir-B, index-B ) ):
+        find-cutoff( dir-A, dir-B, index-A + 1, index-B + 1, length + 1 )
+      else:
+        length
+      end
+    end
+
+    cutoff-index = find-cutoff( source-dir, build-dir, source-head, 0, 0 )
+    { string-substring( build-dir, 0, cutoff-index );
+      string-substring( source-dir, source-head, string-length( source-dir ) ) }
+  end
+
+  fun get-compiled-relative-path( base-dir, source-dir ):
+    cutoff = string-substring( source-dir, string-length( base-dir ), string-length( source-dir ) )
+    
+    fun calculate-relative-path( path ):
+      if string-contains( path, "/" ):
+        slash-location = string-index-of( path, "/" ) + 1
+        remaining-path = string-substring( path, slash-location, string-length( path ) )
+
+        string-append( "../", calculate-relative-path( remaining-path ) ) 
+      else:
+        ""
+      end
+    end
+
+    calculate-relative-path( cutoff )
+  end
+
+  { base-dir; absolute-source-dir } = get-base-dir( provides.from-uri, options.this-pyret-dir )
+  pre-append-dir = get-compiled-relative-path( base-dir, absolute-source-dir )
+  relative-path = string-append( pre-append-dir, options.runtime-path )
+
   require-runtime =
-    J.j-var(const-id("R"), j-expr(j-app(j-id(const-id("require")), [clist: j-str(options.runtime-path + "/runtime.js")])))
+    J.j-var(const-id("R"), j-expr(j-app(j-id(const-id("require")), [clist: j-str( relative-path + "/runtime.js")])))
 
   # module-body = J.j-block(global-binds + stmts + [clist: j-return(ans)])
   module-body = J.j-block([clist: require-runtime] + stmts + [clist: j-return(ans)])

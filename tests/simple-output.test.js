@@ -15,7 +15,7 @@ describe("testing simple-output programs", () => {
         , "--builtin-js-dir"
         , "src/runtime"
         , "--runtime-path"
-        , "../../src/runtime"
+        , "../src/runtime"
         , "--compiled-dir"
         , "tests/compiled"
         , f]);
@@ -26,7 +26,7 @@ describe("testing simple-output programs", () => {
       const expect = firstLine.slice(firstLine.indexOf(" "));
 
       const basename = path.basename(f);
-      const dest = glob.sync(`./tests/compiled/${basename}*-run.js`)[0];
+      const dest = glob.sync(`./compiled/project/tests/simple-output/${basename}.js`)[0];
 
       const runProcess = cp.spawnSync("node", [dest], {stdio: 'pipe'});
       assert(runProcess.status === 0, `${runProcess.stdout}\n${runProcess.stderr}`);

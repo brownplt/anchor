@@ -2486,7 +2486,7 @@ default-compile-options = {
   user-annotations: true,
   runtime-annotations: true,
   compiled-cache: "compiled",
-  runtime-path: "../src/runtime/",
+  runtime-path: "../builtin/src/runtime",
   compiled-read-only: empty,
   display-progress: true,
   should-profile: method(_, locator): false end,
